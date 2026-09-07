@@ -1,0 +1,6 @@
+/* Geist + Geist Mono, served from Google Fonts.
+   SUBSTITUTION NOTE: no font binaries were supplied with the brief. Geist was
+   selected as the neutral grotesque with true tabular figures. If the plant has
+   a licensed corporate face, drop the .woff2 files into assets/fonts/ and replace
+   this @import with local @font-face rules. */
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap");

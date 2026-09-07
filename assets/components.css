@@ -1,0 +1,593 @@
+/* ==========================================================================
+   Üretim Paneli — component + Streamlit-chrome styles
+   Built on the design-system tokens (assets/tokens/*.css). Everything here
+   uses the semantic aliases so light/dark parity comes for free.
+   ========================================================================== */
+
+/* ---- app frame ---------------------------------------------------------- */
+html, body, [class*="stAppViewContainer"] {
+  background: var(--bg-app);
+  color: var(--text-body);
+  font: var(--type-body);
+  font-feature-settings: var(--numeric-tabular);
+  -webkit-font-smoothing: antialiased;
+}
+/* never override Streamlit's Material Symbols icon font */
+[data-testid="stIconMaterial"], span.material-symbols-rounded, span.material-symbols-outlined {
+  font-family: "Material Symbols Rounded", "Material Symbols Outlined" !important;
+  font-feature-settings: normal !important;
+}
+/* Keep the header (the collapsed-sidebar reopen button lives inside it) but
+   strip it to nothing visually and hide only the toolbar noise. */
+#MainMenu, footer,
+[data-testid="stDecoration"], [data-testid="stStatusWidget"],
+[data-testid="stMainMenu"], [data-testid="stAppDeployButton"],
+[data-testid="stToolbarActions"] { display: none !important; }
+header[data-testid="stHeader"] {
+  background: transparent !important; box-shadow: none !important; border: 0 !important;
+}
+[data-testid="stToolbar"] { background: transparent !important; }
+/* the reopen-sidebar control — force visible + give it a real chip look */
+[data-testid="stSidebarCollapsedControl"] { display: flex !important; opacity: 1 !important; }
+[data-testid="stExpandSidebarButton"] {
+  display: flex !important; visibility: visible !important; opacity: 1 !important;
+  color: var(--text-body) !important;
+  background: var(--surface-card) !important;
+  border: 1px solid var(--border-card) !important;
+  border-radius: var(--radius-control) !important;
+  box-shadow: var(--shadow-card);
+}
+[data-testid="stExpandSidebarButton"]:hover {
+  color: var(--text-primary) !important; background: var(--surface-raised) !important;
+}
+
+[data-testid="stAppViewContainer"] { background: var(--bg-app); }
+[data-testid="stMain"] .block-container {
+  max-width: var(--content-max);
+  padding: var(--page-pad-y) var(--page-pad-x) 48px;
+}
+[data-testid="stMain"] { background: var(--bg-app); }
+
+/* vertical rhythm between top-level blocks ≈ section gap */
+[data-testid="stMain"] [data-testid="stVerticalBlock"] { gap: var(--section-gap); }
+[data-testid="stMain"] [data-testid="stHorizontalBlock"] { gap: var(--card-gap); }
+
+h1, h2, h3, h4, h5, h6 { color: var(--text-primary); }
+a { color: var(--text-link); }
+a:hover { color: var(--text-link-hover); }
+hr { border-color: var(--border-subtle); }
+
+::selection { background: var(--accent-tint-40); color: var(--text-primary); }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--gray-6); border-radius: var(--radius-pill);
+  border: 3px solid transparent; background-clip: content-box;
+}
+
+/* ---- sidebar --------------------------------------------------------------- */
+/* Cosmetic only. Never set width/height/flex/transform on [data-testid="stSidebar"],
+   stSidebarContent, stSidebarUserContent or their wrapper <div>s — Streamlit
+   drives the collapse/expand + resize off those and any override jams the
+   open/close toggle. The footer sits in natural flow after the nav. */
+[data-testid="stSidebar"] {
+  background: var(--bg-nav);
+  border-right: 1px solid var(--border-subtle);
+}
+[data-testid="stSidebar"] .block-container,
+[data-testid="stSidebarUserContent"] { padding: 16px 12px; }
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 6px; }
+[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(.up-sidebar-spacer) { display: none; }
+
+.up-brand { display: flex; align-items: center; gap: 10px; padding: 2px 6px 14px; }
+.up-brand__mark {
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
+  background: var(--accent-tint-14); border: 1px solid var(--accent-tint-24);
+  color: var(--accent-base);
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+.up-brand__mark svg { width: 17px; height: 17px; }
+.up-brand__name { font: var(--type-card-title); color: var(--text-primary); line-height: 1.25; }
+.up-brand__sub  { font-size: var(--text-2xs); color: var(--text-subtle); margin-top: 1px; }
+
+/* ---- nav items: st.button keyed nav_<id> --------------------------------- */
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button,
+[data-testid="stSidebar"] [class*="st-key-nav_"] > button {
+  width: 100%; gap: 10px;
+  height: 40px; padding: 0 10px 0 12px;
+  background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--nav-item-fg); font: var(--type-body); font-weight: 500;
+  box-shadow: none; position: relative;
+  transition: var(--transition-control);
+}
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button > div,
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button > div > span,
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button [data-testid="stMarkdownContainer"] {
+  width: 100% !important; flex: 1 1 auto !important; justify-content: flex-start !important;
+}
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button [data-testid="stMarkdownContainer"] p {
+  text-align: left !important; width: 100% !important;
+  display: flex !important; align-items: center; gap: 8px;
+  justify-content: space-between;
+}
+/* the red alert badge: sits at the right edge, tightened to a chip */
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button .stMarkdownBadge {
+  margin-left: auto; flex: 0 0 auto;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  display: inline-flex !important; align-items: center; justify-content: center;
+  border-radius: var(--radius-pill) !important;
+  font-size: var(--text-2xs) !important; font-weight: 600 !important; line-height: 1 !important;
+  background: var(--signal-bad-tint) !important; color: var(--signal-bad) !important;
+}
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button:hover {
+  background: var(--surface-hover); color: var(--text-body);
+}
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button:focus-visible { box-shadow: var(--ring-focus); }
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button[kind="primary"] {
+  background: var(--nav-item-active-bg);
+  border-color: var(--border-subtle);
+  color: var(--nav-item-active-fg); font-weight: 600;
+}
+[data-testid="stSidebar"] [class*="st-key-nav_"] .stButton > button[kind="primary"]::after {
+  content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px;
+  width: 3px; border-radius: var(--radius-pill); background: var(--nav-indicator);
+}
+
+/* ---- sidebar footer: file status only ---------------------------------- */
+/* Natural flow after the nav (a reliable bottom-pin needs viewport-height on the
+   sidebar wrappers, which jams Streamlit's collapse toggle — not worth it). */
+[data-testid="stSidebar"] .st-key-sidefoot {
+  margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--border-subtle);
+}
+
+.up-file-chip {
+  margin: 0; padding: 11px 12px;
+  background: var(--surface-inset); border: 1px solid var(--border-card);
+  border-radius: var(--radius-card-inset);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.up-file-chip__row { display: inline-flex; align-items: center; gap: 6px;
+  font: var(--type-label); color: var(--text-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.up-file-chip__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--signal-good); flex: 0 0 auto; }
+.up-file-chip__meta { font-size: var(--text-2xs); color: var(--text-subtle); line-height: 1.45; }
+
+/* ---- top bar (global search + theme + refresh) ------------------------- */
+[data-testid="stMain"] .st-key-topbar {
+  position: sticky; top: 0; z-index: 50;
+  margin: calc(var(--page-pad-y) * -1) calc(var(--page-pad-x) * -1) var(--section-gap);
+  padding: 11px var(--page-pad-x);
+  background: var(--bg-app); border-bottom: 1px solid var(--border-subtle);
+}
+.st-key-topbar [data-testid="stHorizontalBlock"] { gap: 12px !important; align-items: center; }
+/* search field -> pill */
+.st-key-topbar .stTextInput [data-baseweb="input"],
+.st-key-topbar .stTextInput [data-baseweb="base-input"] {
+  border-radius: var(--radius-pill) !important; background: var(--surface-field) !important;
+}
+.st-key-topbar .stTextInput input {
+  border-radius: var(--radius-pill) !important;
+  background: var(--surface-field) !important;
+  border-color: var(--border-field) !important;
+  height: 38px; font-size: var(--text-sm) !important;
+}
+.st-key-topbar .stTextInput { max-width: 360px; }
+.st-key-topbar .stTextInput [data-testid="stTextInputRootElement"] {
+  border-radius: var(--radius-pill) !important; border-color: var(--border-field) !important;
+  background: var(--surface-field) !important;
+}
+/* data panel -> pill button in the gap left of the theme toggle */
+.st-key-topbar .st-key-tb_data { display: flex; justify-content: flex-start; }
+.st-key-topbar .st-key-tb_data .stButton > button {
+  height: 38px; padding: 0 16px !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--surface-card) !important; border: 1px solid var(--border-card) !important;
+  box-shadow: none !important; color: var(--text-muted) !important;
+  font-size: var(--text-sm) !important; font-weight: 500;
+}
+.st-key-topbar .st-key-tb_data .stButton > button:hover {
+  background: var(--surface-raised) !important; color: var(--text-primary) !important;
+}
+.st-key-topbar .st-key-tb_data [data-testid="stIconMaterial"] { font-size: 18px; }
+
+/* theme + refresh -> circular icon buttons */
+.st-key-topbar .st-key-tb_theme, .st-key-topbar .st-key-tb_refresh { display: flex; justify-content: flex-end; }
+.st-key-topbar .st-key-tb_theme .stButton > button,
+.st-key-topbar .st-key-tb_refresh .stButton > button {
+  width: 38px !important; min-width: 38px; height: 38px; padding: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--surface-card) !important; border: 1px solid var(--border-card) !important;
+  box-shadow: none !important; color: var(--text-muted) !important;
+}
+.st-key-topbar .st-key-tb_theme .stButton > button:hover,
+.st-key-topbar .st-key-tb_refresh .stButton > button:hover {
+  background: var(--surface-raised) !important; color: var(--text-primary) !important;
+}
+.st-key-topbar .st-key-tb_theme [data-testid="stIconMaterial"],
+.st-key-topbar .st-key-tb_refresh [data-testid="stIconMaterial"] { font-size: 18px; }
+
+/* ---- section header --------------------------------------------------- */
+.up-section { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.up-section__title { font: var(--type-page-title); color: var(--text-primary); letter-spacing: var(--tracking-tight); margin: 0; }
+.up-section__sub { font: var(--type-caption); color: var(--text-subtle); margin-top: 6px; }
+
+/* ---- generic card ---------------------------------------------------- */
+.up-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--card-pad);
+}
+.up-card--tight { padding: var(--card-pad-tight); }
+.up-card--bad  { border-color: var(--signal-bad-border); }
+.up-card--good { border-color: var(--signal-good-border); }
+.up-card__head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.up-card__title { font: var(--type-card-title); color: var(--text-primary); letter-spacing: var(--tracking-tight); }
+.up-card__sub { font: var(--type-caption); font-size: var(--text-xs); color: var(--text-subtle); }
+.up-card__icon { color: var(--text-subtle); display: inline-flex; }
+.up-card__icon svg { width: 16px; height: 16px; }
+.up-card__spacer { flex: 1; }
+
+.up-inset {
+  background: var(--surface-inset); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card-inset); padding: 14px;
+}
+
+/* ---- hero metric --------------------------------------------------------- */
+.up-hero {
+  position: relative; overflow: hidden;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-raised);
+  padding: 22px 24px;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 28px 32px; flex-wrap: wrap;
+}
+.up-hero::before {
+  content: ""; position: absolute; inset: -55% 45% auto -12%; height: 320px;
+  background: radial-gradient(50% 50% at 50% 50%, var(--accent-tint-08), transparent 70%);
+  pointer-events: none;
+}
+.up-hero__main { position: relative; z-index: 1; min-width: 260px; flex: 1 1 300px;
+  display: flex; flex-direction: column; gap: 12px; }
+.up-hero__overline {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font: var(--type-overline); text-transform: uppercase; letter-spacing: var(--tracking-label);
+  color: var(--text-muted);
+}
+.up-hero__overline svg { width: 13px; height: 13px; color: var(--accent-base); flex: 0 0 auto; }
+.up-hero__value {
+  font: var(--type-hero-metric); color: var(--text-primary);
+  letter-spacing: var(--tracking-metric); margin: 0;
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+}
+.up-hero__unit { font-size: var(--text-md); font-weight: 400; color: var(--text-muted); letter-spacing: 0; }
+.up-hero__delta {
+  align-self: center; display: inline-flex; align-items: center;
+  font: var(--type-body); font-weight: 500; letter-spacing: 0;
+}
+.up-hero__note { font: var(--type-caption); color: var(--text-subtle); max-width: 60ch; }
+.up-hero__aside { position: relative; z-index: 1; display: flex; gap: 34px; flex-wrap: wrap; flex: 0 0 auto; }
+.up-hero__aside-item .l { font: var(--type-caption); font-size: var(--text-xs); color: var(--text-subtle); }
+.up-hero__aside-item .v {
+  font: var(--type-metric); font-size: var(--text-2xl); letter-spacing: var(--tracking-metric);
+  margin-top: 4px;
+}
+/* full-width sparkline bleeding to the card's bottom edge */
+.up-hero__spark {
+  position: relative; z-index: 1; flex-basis: 100%;
+  margin: 6px -24px -22px; height: 56px; pointer-events: none;
+}
+.up-hero__spark svg { width: 100%; }
+
+/* ---- KPI card ---------------------------------------------------------- */
+.up-kpi {
+  background: var(--surface-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-card); box-shadow: var(--shadow-card);
+  padding: var(--card-pad); height: 100%;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.up-kpi--selected { border-color: var(--accent-base); box-shadow: var(--glow-accent); }
+.up-kpi__top { display: flex; align-items: center; justify-content: space-between; }
+.up-kpi__label { font: var(--type-label); color: var(--text-muted); }
+.up-kpi__glyph { color: var(--text-subtle); display: inline-flex; }
+.up-kpi__glyph svg { width: 16px; height: 16px; }
+.up-kpi__value {
+  font: var(--type-metric); color: var(--text-primary); letter-spacing: var(--tracking-metric);
+  display: flex; align-items: baseline; gap: 6px;
+}
+.up-kpi__unit { font-size: var(--text-md); font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.up-kpi__foot { display: flex; align-items: center; gap: 8px; font: var(--type-caption); font-size: var(--text-xs); color: var(--text-subtle); }
+
+/* ---- delta chip ------------------------------------------------------- */
+.up-delta {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: var(--text-xs); font-weight: 600; font-variant-numeric: tabular-nums;
+  padding: 2px 7px 2px 5px; border-radius: var(--radius-pill);
+}
+.up-delta svg { width: 12px; height: 12px; }
+.up-delta--good { color: var(--signal-good); background: var(--signal-good-tint); }
+.up-delta--bad  { color: var(--signal-bad);  background: var(--signal-bad-tint); }
+.up-delta--neutral { color: var(--text-subtle); background: var(--signal-neutral-tint); }
+.up-delta__period {
+  margin-left: 7px; font: var(--type-caption); font-size: var(--text-xs);
+  font-weight: 400; color: var(--text-subtle); letter-spacing: 0;
+}
+
+/* ---- badge ----------------------------------------------------------- */
+.up-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--text-xs); font-weight: 600; line-height: 1;
+  padding: 4px 9px; border-radius: var(--radius-pill);
+  border: 1px solid transparent; white-space: nowrap;
+}
+.up-badge--sm { font-size: var(--text-2xs); padding: 3px 7px; }
+.up-badge__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.up-badge--good { color: var(--signal-good); background: var(--signal-good-tint); border-color: var(--signal-good-border); }
+.up-badge--bad  { color: var(--signal-bad);  background: var(--signal-bad-tint);  border-color: var(--signal-bad-border); }
+.up-badge--caution { color: var(--signal-caution); background: var(--signal-caution-tint); border-color: var(--signal-caution-border); }
+.up-badge--neutral { color: var(--text-muted); background: var(--signal-neutral-tint); border-color: var(--signal-neutral-border); }
+.up-badge--accent  { color: var(--text-on-accent); background: var(--accent-base); }
+
+/* ---- stat bar / proportion ---------------------------------------------- */
+.up-statbar { height: 8px; border-radius: var(--radius-pill); background: var(--surface-inset); overflow: hidden; }
+.up-statbar__fill { height: 100%; border-radius: var(--radius-pill); background: var(--series-1); }
+
+/* ---- threshold meter (±5% tolerance band) ------------------------------- */
+.up-meter { display: flex; flex-direction: column; gap: 8px; }
+.up-meter__track {
+  position: relative; height: 10px; border-radius: var(--radius-pill);
+  background: linear-gradient(90deg,
+    var(--signal-bad-tint) 0 30%, var(--signal-good-tint) 30% 70%, var(--signal-bad-tint) 70% 100%);
+  border: 1px solid var(--border-subtle);
+}
+.up-meter__band {
+  position: absolute; top: -1px; bottom: -1px; left: 30%; right: 30%;
+  border-left: 1px solid var(--signal-good-border);
+  border-right: 1px solid var(--signal-good-border);
+}
+.up-meter__marker {
+  position: absolute; top: -4px; width: 2.5px; height: 18px; border-radius: var(--radius-pill);
+  background: var(--text-primary); transform: translateX(-50%);
+  transition: left var(--dur-slow) var(--ease-standard);
+}
+.up-meter__scale { display: flex; justify-content: space-between; font-size: var(--text-2xs); color: var(--text-subtle); }
+
+/* ---- data table ---------------------------------------------------------- */
+.up-table-wrap { overflow-x: auto; border-radius: var(--radius-card-inset); }
+table.up-table { width: 100%; border-collapse: collapse; font: var(--type-body); }
+table.up-table thead th {
+  text-align: left; font: var(--type-overline); text-transform: uppercase;
+  letter-spacing: var(--tracking-label); color: var(--text-subtle);
+  padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap;
+}
+table.up-table tbody td {
+  padding: 9px 12px; border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-body); vertical-align: middle;
+}
+table.up-table tbody tr:hover td { background: var(--surface-hover); }
+table.up-table .num {
+  text-align: right; font: var(--type-table-num); color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+table.up-table .emph { color: var(--text-primary); font-weight: 600; }
+table.up-table tfoot td {
+  padding: 10px 12px; border-top: 1px solid var(--border-strong);
+  font-weight: 600; color: var(--text-primary);
+}
+table.up-table tfoot td.num { font: var(--type-table-num); font-weight: 600; }
+.up-table .muted { color: var(--text-disabled); }
+
+/* ---- alert ------------------------------------------------------------- */
+.up-alert {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 16px; border-radius: var(--radius-card);
+  border: 1px solid var(--border-card); background: var(--surface-card);
+}
+.up-alert__icon { flex: 0 0 auto; margin-top: 1px; }
+.up-alert__icon svg { width: 18px; height: 18px; }
+.up-alert__title { font-weight: 600; color: var(--text-primary); }
+.up-alert__body { font: var(--type-caption); color: var(--text-body); margin-top: 3px; }
+.up-alert--bad  { border-color: var(--signal-bad-border); background: var(--signal-bad-tint); }
+.up-alert--bad  .up-alert__icon { color: var(--signal-bad); }
+.up-alert--caution { border-color: var(--signal-caution-border); background: var(--signal-caution-tint); }
+.up-alert--caution .up-alert__icon { color: var(--signal-caution); }
+.up-alert--good { border-color: var(--signal-good-border); background: var(--signal-good-tint); }
+.up-alert--good .up-alert__icon { color: var(--signal-good); }
+.up-alert--info { border-color: var(--border-strong); }
+.up-alert--info .up-alert__icon { color: var(--text-subtle); }
+
+/* ---- empty state ----------------------------------------------------- */
+.up-empty { display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 32px 16px; text-align: center; }
+.up-empty__tile {
+  width: 40px; height: 40px; border-radius: var(--radius-card-inset);
+  background: var(--surface-inset); border: 1px solid var(--border-subtle);
+  display: flex; align-items: center; justify-content: center; color: var(--text-subtle);
+}
+.up-empty__title { font-weight: 600; color: var(--text-primary); }
+.up-empty__body { font: var(--type-caption); color: var(--text-subtle); max-width: 40ch; }
+
+/* ---- misc helpers ---------------------------------------------------- */
+.up-figrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.up-fig .l { font: var(--type-caption); font-size: var(--text-xs); color: var(--text-subtle); }
+.up-fig .v { font: var(--type-table-num); font-size: var(--text-xl); color: var(--text-primary); margin-top: 3px; }
+.up-divrow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--border-subtle);
+  font: var(--type-caption); font-size: var(--text-xs); color: var(--text-subtle);
+}
+.up-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.up-legend__item { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--text-muted); }
+.up-legend__dot { width: 8px; height: 8px; border-radius: 50%; }
+.up-foot-note { font: var(--type-caption); font-size: var(--text-xs); color: var(--text-subtle); margin-top: 10px; }
+
+/* ==========================================================================
+   Streamlit widgets, re-skinned to the system
+   ========================================================================== */
+.stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+  border-radius: var(--radius-control); font: var(--type-body); font-weight: 600;
+  padding: 0 16px; min-height: var(--control-h);
+  transition: var(--transition-control); box-shadow: none;
+}
+[data-testid="stMain"] .stButton > button[kind="primary"],
+.stDownloadButton > button[kind="primary"],
+.stFormSubmitButton > button {
+  background: var(--action-primary-bg); color: var(--text-on-accent); border: 1px solid transparent;
+}
+[data-testid="stMain"] .stButton > button[kind="primary"]:hover,
+.stFormSubmitButton > button:hover { background: var(--action-primary-bg-hover); }
+[data-testid="stMain"] .stButton > button[kind="primary"]:active,
+.stFormSubmitButton > button:active { background: var(--action-primary-bg-press); }
+[data-testid="stMain"] .stButton > button[kind="secondary"],
+.stDownloadButton > button {
+  background: var(--action-secondary-bg); color: var(--text-body);
+  border: 1px solid var(--border-strong);
+}
+[data-testid="stMain"] .stButton > button[kind="secondary"]:hover { background: var(--action-secondary-bg-hover); }
+.stButton > button:disabled, .stFormSubmitButton > button:disabled { opacity: .45; cursor: not-allowed; }
+:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+/* inputs */
+.stTextInput input, .stNumberInput input, .stDateInput input, .stTimeInput input,
+[data-baseweb="select"] > div, .stTextArea textarea {
+  background: var(--surface-field) !important;
+  border: 1px solid var(--border-field) !important;
+  border-radius: var(--radius-control) !important;
+  color: var(--text-body) !important;
+  font: var(--type-body) !important;
+}
+.stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus {
+  border-color: var(--border-focus) !important; box-shadow: var(--ring-focus) !important;
+}
+label, .stCheckbox label, .stRadio label { color: var(--text-muted) !important; font: var(--type-label) !important; }
+[data-testid="stWidgetLabel"] p { font: var(--type-label); color: var(--text-muted); }
+
+/* tabs -> underlined in-page tabs */
+.stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 1px solid var(--border-subtle); }
+.stTabs [data-baseweb="tab"] {
+  background: transparent; color: var(--text-muted); font-weight: 500;
+  padding: 8px 12px; border-radius: 0;
+}
+.stTabs [aria-selected="true"] { color: var(--text-primary); border-bottom: 2px solid var(--accent-base); }
+
+/* segmented control -> compact dark pill track with a raised selected chip.
+   Streamlit 1.63 renders st.segmented_control as [data-testid="stButtonGroup"]
+   with button[data-variant="segmented_control"]; selected carries
+   [data-selected="true"] / [aria-checked="true"]. NO accent colour — the
+   selected segment lifts onto --surface-raised with a card shadow. */
+[data-testid="stButtonGroup"] { display: inline-block; width: auto !important; }
+[data-testid="stButtonGroup"] > div {
+  display: inline-flex !important; gap: 2px !important; padding: 3px !important;
+  background: var(--surface-inset); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control); width: auto !important;
+}
+[data-testid="stButtonGroup"] button[data-variant="segmented_control"] {
+  background: transparent !important; border: 1px solid transparent !important;
+  box-shadow: none !important; outline: none !important;
+  color: var(--text-muted) !important;
+  font-family: var(--font-sans) !important; font-size: var(--text-sm) !important;
+  font-weight: 500 !important; letter-spacing: var(--tracking-tight) !important;
+  min-height: 28px !important; height: 28px !important; padding: 0 12px !important;
+  border-radius: var(--radius-xs) !important;
+  transition: var(--transition-control);
+}
+[data-testid="stButtonGroup"] button[data-variant="segmented_control"]:hover {
+  background: var(--surface-hover) !important; color: var(--text-body) !important;
+}
+[data-testid="stButtonGroup"] button[data-variant="segmented_control"][data-selected="true"],
+[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] {
+  background: var(--surface-raised) !important; color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+[data-testid="stButtonGroup"] button[data-variant="segmented_control"]:focus-visible {
+  box-shadow: var(--ring-focus) !important;
+}
+[data-testid="stButtonGroup"] button[data-variant="segmented_control"] * { color: inherit !important; }
+
+/* ---- in-page tab bar (scope switcher), built from st.button ------------- */
+/* .st-key-uptabbar IS the vertical block; flip it to a horizontal row so the
+   buttons sit side by side without st.columns */
+[data-testid="stMain"] .st-key-uptabbar {
+  flex-direction: row !important; flex-wrap: wrap !important; align-items: stretch;
+  gap: 2px 22px !important; border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+}
+.st-key-uptabbar > [data-testid="stElementContainer"] {
+  width: auto !important; flex: 0 0 auto !important;
+}
+.st-key-uptabbar .stButton { width: auto; }
+.st-key-uptabbar .stButton > button {
+  width: auto !important;
+  background: transparent !important; border: none !important; box-shadow: none !important;
+  color: var(--text-muted); font: var(--type-body); font-weight: 400;
+  letter-spacing: var(--tracking-tight);
+  padding: 2px 2px 11px !important; min-height: 0; border-radius: 0;
+  position: relative; white-space: nowrap;
+}
+.st-key-uptabbar .stButton > button:hover { color: var(--text-body); background: transparent !important; }
+.st-key-uptabbar .stButton > button::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  border-radius: var(--radius-pill); background: transparent;
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+.st-key-uptabbar .stButton > button[kind="primary"] { color: var(--text-primary); font-weight: 500; }
+.st-key-uptabbar .stButton > button[kind="primary"]::after { background: var(--accent-base); }
+/* count chip appended to the label via markdown */
+.st-key-uptabbar .stButton > button [data-testid="stMarkdownContainer"] { display: inline; }
+
+/* metric fallback (we mostly render our own) */
+[data-testid="stMetricValue"] { font: var(--type-metric); color: var(--text-primary); letter-spacing: var(--tracking-metric); }
+
+/* dataframe */
+[data-testid="stDataFrame"] { border: 1px solid var(--border-card); border-radius: var(--radius-card); }
+
+/* toast/alert native */
+[data-testid="stAlert"] { border-radius: var(--radius-card); }
+
+/* plotly chart sits inside a card cleanly */
+.up-card .js-plotly-plot, .up-card .stPlotlyChart { width: 100% !important; }
+
+/* remove the top padding Streamlit reserves for its (hidden) header */
+[data-testid="stAppViewBlockContainer"] { padding-top: var(--page-pad-y); }
+
+/* bordered containers === design-system card (used to wrap Plotly charts) */
+[data-testid="stMain"] [data-testid="stVerticalBlockBorderWrapper"] {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card) !important;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+[data-testid="stMain"] [data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"] {
+  padding: var(--card-pad); gap: 10px;
+}
+/* a card flagged bad: red hairline (key="card_bad") */
+.st-key-card_bad [data-testid="stVerticalBlockBorderWrapper"] { border-color: var(--signal-bad-border) !important; }
+
+/* the Plotly plot itself */
+.stPlotlyChart { background: transparent; }
+.js-plotly-plot .plotly .modebar { display: none !important; }
+
+/* card header rendered as markdown just above the plot */
+.up-charthead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.up-charthead__title { font: var(--type-card-title); color: var(--text-primary); letter-spacing: var(--tracking-tight); }
+.up-charthead__sub { font: var(--type-caption); font-size: var(--text-xs); color: var(--text-subtle); }
+
+/* editable Araç Takip grid (st.data_editor) */
+.st-key-arac_grid_box [data-testid="stDataFrame"] {
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-card-inset);
+}
+.st-key-arac_grid_box .st-key-arac_save .stButton > button { white-space: nowrap; }
+.st-key-arac_grid_box [data-testid="stElementToolbar"] { background: transparent; }
+
+/* tighten vertical gaps inside cards for label/figure stacks */
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMarkdownContainer"] p { margin: 0; }
+
+/* keep column blocks that hold whole cards from collapsing height */
+[data-testid="stMain"] [data-testid="stColumn"],
+[data-testid="stMain"] [data-testid="column"] { align-self: stretch; }
+[data-testid="stMain"] [data-testid="stColumn"] > div,
+[data-testid="stMain"] [data-testid="column"] > div { height: 100%; }

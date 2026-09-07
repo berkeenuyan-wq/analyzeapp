@@ -1,0 +1,43 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Data — KPI, Hero, Delta, Meter, Chart, Table" subtitle="The metric vocabulary of the panel" -->
+<!doctype html><html lang="tr" data-theme="dark"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:18px 20px;background:var(--bg-app);font:var(--type-body);color:var(--text-body)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:flex;flex-direction:column;gap:14px}.lbl{font:var(--type-overline);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-disabled)}</style></head><body><div id="root"></div><script type="text/babel">
+const { KpiCard, HeroMetric, DeltaChip, ThresholdMeter, Sparkline, ChartCard, DataTable, StatBar, Badge } = window.RetimPaneliDesignSystem_b437a5;
+const trend=[812,840,798,866,903,889,921,940,918,962];
+function Demo(){return(<div className="col">
+  <HeroMetric label="Posa oranı" value="4,1" unit="%" icon="percent" status="Tolerans içinde" statusTone="good"
+    delta={-0.6} deltaGoodWhen="down" deltaPeriod="önceki haftaya göre"
+    note="(Araç Toplamı − Pres Toplamı) / Araç Toplamı · Tolerans ±%5"
+    aside={<ThresholdMeter value={4.1} limit={5} min={-10} max={10} label="Kütle dengesi" style={{width:260}} />} />
+  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16}}>
+    <KpiCard label="Toplam pres hacmi" value="1.284,6" unit="ton" icon="gauge" delta={4.2} deltaGoodWhen="up" deltaPeriod="Önceki haftaya göre" />
+    <KpiCard label="Araç girişi" value="142" unit="araç" icon="truck" delta={-2.1} deltaGoodWhen="up" deltaPeriod="Önceki haftaya göre" />
+    <KpiCard label="Posa oranı" value="7,4" unit="%" icon="percent" tone="bad" delta={2.3} deltaGoodWhen="down" deltaPeriod="Tolerans dışı" />
+    <KpiCard label="Ortalama bekleme" value="38" unit="dk" icon="clock" delta={0} deltaGoodWhen="down" deltaPeriod="Değişim yok" />
+  </div>
+  <div className="row" style={{gap:24}}><DeltaChip value={4.2} goodWhen="up" period="haftaya göre" /><DeltaChip value={-0.6} goodWhen="down" period="iyileşme" /><DeltaChip value={2.3} goodWhen="down" period="tolerans dışı" /><DeltaChip value={0} period="değişim yok" /><Sparkline points={trend} width={140} height={38} /></div>
+  <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:16}}>
+    <ChartCard title="Pres hacmi trendi" subtitle="Günlük · ton" height={120}
+      legend={[{label:"Pres 1",color:"var(--series-1)",value:"642 t"},{label:"Pres 2",color:"var(--series-2)",value:"643 t"}]}
+      footer="Kaynak: uretim.xlsx · Son güncelleme 14:20">
+      <div style={{display:"flex",alignItems:"flex-end",gap:6,height:"100%"}}>
+        {trend.map((v,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:3,height:"100%"}}>
+          <div style={{height:((v-780)/200*70)+"%",background:"var(--series-1)",borderRadius:"3px 3px 0 0"}} />
+          <div style={{height:((v-800)/200*55)+"%",background:"var(--series-2)",borderRadius:"3px 3px 0 0"}} />
+        </div>)}
+      </div>
+    </ChartCard>
+    <DataTable dense keyField="plaka" sortKey="net" sortDir="desc" onSort={()=>{}}
+      columns={[{key:"plaka",header:"Plaka",emphasis:true},{key:"net",header:"Net",numeric:true,align:"right",sortable:true},
+        {key:"pay",header:"Pay",render:r=><StatBar value={r.net} max={31} valueLabel={r.net+" t"} color="var(--series-2)" />},
+        {key:"durum",header:"Durum",render:r=><Badge tone={r.ok?"good":"bad"} size="sm">{r.ok?"Uygun":"Sapma"}</Badge>}]}
+      rows={[{plaka:"35 ABC 123",net:"27,15",ok:true},{plaka:"06 KLM 908",net:"29,80",ok:true},{plaka:"16 XYZ 441",net:"22,71",ok:false}]}
+      footRow={{plaka:"Toplam",net:"79,66"}} />
+  </div>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

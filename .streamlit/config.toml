@@ -1,0 +1,16 @@
+# Native-widget theme, kept in step with the design system tokens so Streamlit's
+# own chrome does not fight the injected CSS. Dark is the primary theme; the
+# in-app sun/moon toggle re-points the CSS aliases for light.
+[theme]
+base = "dark"
+primaryColor = "#e0409e"
+backgroundColor = "#0b0b0e"
+secondaryBackgroundColor = "#121216"
+textColor = "#d6d6dc"
+font = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

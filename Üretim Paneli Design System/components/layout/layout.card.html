@@ -1,0 +1,27 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Layout — AppShell, CardGrid, SplitRow" subtitle="The page frame and its two grid helpers" -->
+<!doctype html><html lang="tr" data-theme="dark"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:18px 20px;background:var(--bg-app);font:var(--type-body);color:var(--text-body)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:flex;flex-direction:column;gap:14px}.lbl{font:var(--type-overline);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-disabled)}</style></head><body style="padding:0"><div id="root" style="height:400px"></div><script type="text/babel">
+const { AppShell, CardGrid, SplitRow, Sidebar, TopBar, SectionHeader, KpiCard, ChartCard, Card, Button, IconButton } = window.RetimPaneliDesignSystem_b437a5;
+const items=[{id:"genel",icon:"layout-dashboard",label:"Genel Bakış"},{id:"pres",icon:"gauge",label:"Pres Performansı"},{id:"posa",icon:"percent",label:"Posa Analizi"},{id:"arac",icon:"truck",label:"Araç Lojistiği"},{id:"giris",icon:"square-pen",label:"Veri Girişi"}];
+function Demo(){return(
+  <AppShell sidebar={<Sidebar brand="Üretim Paneli" brandSub="Elma Presleme Tesisi" items={items} activeId="genel" />}
+            topbar={<TopBar search="" onSearchChange={()=>{}} actions={<IconButton icon="sun" label="Tema" />} user={{initials:"MK",name:"Murat Kaya",role:"Üretim Müdürü"}} />}>
+    <SectionHeader title="Genel Bakış" subtitle="12 Eylül 2026 · Vardiya 2" actions={<Button icon="download">Excel'e Aktar</Button>} />
+    <CardGrid minWidth={150}>
+      <KpiCard label="Pres hacmi" value="1.284,6" unit="ton" icon="gauge" delta={4.2} />
+      <KpiCard label="Araç girişi" value="142" unit="araç" icon="truck" delta={-2.1} />
+      <KpiCard label="Posa oranı" value="4,1" unit="%" icon="percent" delta={-0.6} deltaGoodWhen="down" />
+      <KpiCard label="Bekleme" value="38" unit="dk" icon="clock" delta={0} />
+    </CardGrid>
+    <SplitRow ratio="2fr 1fr">
+      <ChartCard title="Pres hacmi trendi" subtitle="Günlük · ton" height={90} legend={[{label:"Pres 1",color:"var(--series-1)"},{label:"Pres 2",color:"var(--series-2)"}]}><div style={{height:"100%",borderRadius:"var(--radius-card-inset)",background:"var(--surface-inset)",border:"1px dashed var(--border-subtle)"}} /></ChartCard>
+      <Card title="Tedarikçi kırılımı" subtitle="Bu hafta"><div style={{height:90,borderRadius:"var(--radius-card-inset)",background:"var(--surface-inset)",border:"1px dashed var(--border-subtle)"}} /></Card>
+    </SplitRow>
+  </AppShell>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

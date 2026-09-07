@@ -1,0 +1,20 @@
+:root{
+  /* Depth is quiet: a hairline border does the separating, the shadow only
+     lifts the card off the near-black page. */
+  --shadow-none:none;
+  --shadow-card:0 1px 1px rgba(0,0,0,.30),0 10px 28px -18px rgba(0,0,0,.70);
+  --shadow-raised:0 2px 4px rgba(0,0,0,.34),0 18px 44px -22px rgba(0,0,0,.78);
+  --shadow-pop:0 8px 12px -6px rgba(0,0,0,.44),0 26px 60px -24px rgba(0,0,0,.82);
+  --shadow-inset-field:inset 0 1px 0 rgba(255,255,255,.03);
+  --glow-accent:0 0 0 1px var(--accent-tint-24),0 8px 24px -10px var(--accent-tint-40);
+  --glow-good:0 0 0 1px var(--signal-good-border);
+  --glow-bad:0 0 0 1px var(--signal-bad-border);
+  --blur-scrim:blur(8px); /* @kind other */
+  --blur-panel:blur(16px); /* @kind other */
+}
+[data-theme="light"]{
+  --shadow-card:0 1px 2px rgba(20,20,26,.05),0 6px 18px -12px rgba(20,20,26,.14);
+  --shadow-raised:0 2px 4px rgba(20,20,26,.07),0 14px 34px -16px rgba(20,20,26,.18);
+  --shadow-pop:0 8px 14px -8px rgba(20,20,26,.12),0 24px 54px -22px rgba(20,20,26,.24);
+  --shadow-inset-field:inset 0 1px 0 rgba(20,20,26,.02);
+}

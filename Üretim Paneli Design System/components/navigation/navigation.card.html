@@ -1,0 +1,25 @@
+<!-- @dsCard group="Components" viewport="700x380" name="Navigation — Sidebar, TopBar, PageTabs" subtitle="The five fixed Turkish sections plus in-page views" -->
+<!doctype html><html lang="tr" data-theme="dark"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:18px 20px;background:var(--bg-app);font:var(--type-body);color:var(--text-body)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:flex;flex-direction:column;gap:14px}.lbl{font:var(--type-overline);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-disabled)}</style></head><body style="padding:0"><div id="root" style="height:380px"></div><script type="text/babel">
+const { Sidebar, TopBar, PageTabs, IconButton, Badge } = window.RetimPaneliDesignSystem_b437a5;
+const items=[{id:"genel",icon:"layout-dashboard",label:"Genel Bakış"},{id:"pres",icon:"gauge",label:"Pres Performansı"},{id:"posa",icon:"percent",label:"Posa Analizi",badge:<Badge tone="bad" size="sm">1</Badge>},{id:"arac",icon:"truck",label:"Araç Lojistiği"},{id:"giris",icon:"square-pen",label:"Veri Girişi"}];
+function Demo(){
+  const [p,setP]=React.useState("posa"); const [t,setT]=React.useState("p1"); const [q,setQ]=React.useState("");
+  return(<div style={{display:"flex",height:"100%",background:"var(--bg-app)"}}>
+    <Sidebar brand="Üretim Paneli" brandSub="Elma Presleme Tesisi" items={items} activeId={p} onSelect={setP} />
+    <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column"}}>
+      <TopBar search={q} onSearchChange={setQ} searchPlaceholder="Plaka veya tedarikçi ara"
+        actions={<><IconButton icon="sun" label="Tema" /><IconButton icon="refresh-cw" label="Yenile" /><IconButton icon="bell" label="Uyarılar" /></>}
+        user={{initials:"MK",name:"Murat Kaya",role:"Üretim Müdürü"}} />
+      <div style={{padding:"20px 28px"}}>
+        <PageTabs value={t} onChange={setT} tabs={[{id:"p1",label:"Pres 1"},{id:"p2",label:"Pres 2"},{id:"kars",label:"Karşılaştırma",count:2}]} />
+      </div>
+    </div>
+  </div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

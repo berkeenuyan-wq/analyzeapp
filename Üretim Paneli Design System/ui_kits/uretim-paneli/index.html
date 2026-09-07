@@ -1,0 +1,66 @@
+<!-- @dsCard group="Üretim Paneli" viewport="1440x900" name="Üretim Paneli — tam uygulama" subtitle="Beş bölümlü tıklanabilir panel: Genel Bakış, Pres, Posa, Araç, Veri Girişi" -->
+<!-- @startingPoint section="Üretim Paneli" subtitle="Beş bölümlü üretim analitiği paneli" viewport="1440x900" -->
+<!doctype html><html lang="tr" data-theme="dark"><head><meta charset="utf-8"><title>Üretim Paneli</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="data.js"></script>
+<style>html,body,#root{height:100%;margin:0}body{background:var(--bg-app);overflow:hidden}</style>
+</head><body><div id="root"></div>
+<script type="text/babel" src="Charts.jsx"></script>
+<script type="text/babel" src="GenelBakis.jsx"></script>
+<script type="text/babel" src="PresPerformansi.jsx"></script>
+<script type="text/babel" src="PosaAnalizi.jsx"></script>
+<script type="text/babel" src="AracLojistigi.jsx"></script>
+<script type="text/babel" src="VeriGirisi.jsx"></script>
+<script type="text/babel">
+const { AppShell, Sidebar, TopBar, IconButton, Badge, Card } = window.RetimPaneliDesignSystem_b437a5;
+
+const SECTIONS = [
+  { id: "genel", icon: "layout-dashboard", label: "Genel Bakış" },
+  { id: "pres",  icon: "gauge",            label: "Pres Performansı" },
+  { id: "posa",  icon: "percent",          label: "Posa Analizi", badge: <Badge tone="bad" size="sm">1</Badge> },
+  { id: "arac",  icon: "truck",            label: "Araç Lojistiği" },
+  { id: "giris", icon: "square-pen",       label: "Veri Girişi" },
+];
+
+function App() {
+  const [page, setPage] = React.useState("genel");
+  const [theme, setTheme] = React.useState("dark");
+  const [collapsed, setCollapsed] = React.useState(false);
+  const [q, setQ] = React.useState("");
+
+  React.useEffect(() => { document.documentElement.setAttribute("data-theme", theme); }, [theme]);
+
+  const Screen = { genel: window.GenelBakis, pres: window.PresPerformansi, posa: window.PosaAnalizi, arac: window.AracLojistigi, giris: window.VeriGirisi }[page];
+
+  return (
+    <AppShell
+      sidebar={<Sidebar brand="Üretim Paneli" brandSub="Elma Presleme Tesisi" items={SECTIONS} activeId={page} onSelect={setPage} collapsed={collapsed}
+        footer={collapsed ? null : (
+          <Card inset padding="12px 14px">
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, font: "var(--type-label)", color: "var(--text-muted)" }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--signal-good)" }} />uretim.xlsx
+              </span>
+              <span style={{ font: "var(--type-caption)", fontSize: "var(--text-2xs)", color: "var(--text-subtle)" }}>Son okuma 14:20 · 2.418 satır</span>
+            </div>
+          </Card>
+        )} />}
+      topbar={<TopBar search={q} onSearchChange={setQ} searchPlaceholder="Plaka veya tedarikçi ara"
+        left={<IconButton icon={collapsed ? "panel-left-open" : "panel-left-close"} label="Menüyü daralt" variant="ghost" onClick={() => setCollapsed(c => !c)} />}
+        actions={<>
+          <IconButton icon={theme === "dark" ? "sun" : "moon"} label="Tema değiştir" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} />
+          <IconButton icon="refresh-cw" label="Verileri yenile" />
+          <IconButton icon="bell" label="Uyarılar" />
+        </>}
+        user={{ initials: "MK", name: "Murat Kaya", role: "Üretim Müdürü" }} />}>
+      <Screen onNavigate={setPage} />
+    </AppShell>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script></body></html>
