@@ -37,7 +37,14 @@ Production_Stats.xlsx ──▶ src/ingest.py (clean) ──▶ data/uretim.db �
   (tightest window wins). A reading that fits no window shows as *eşleşmedi*.
   First launch seeds `lab` from `data/seed/pres_kalite_kontrolleri.csv`; the
   Excel round-trip reads/writes the `PRES KALİTE KONTROLLERİ` sheet when present
-  (its absence is never an error).
+  (its absence is never an error). A reading with no PRES NO stores `pres_no = 0`
+  (not NULL) so the `(tarih, pres_no, kontrol_saati)` upsert key stays sound.
+
+  The section's charts switch between **Ölçüm** (one day, reading by reading),
+  **Batch** (per batch, in shift order) and **Gün** granularity. A **Veri
+  tamlığı** KPI tracks how completely the lab fills the sheet — filled Sıkım
+  Brix/pH/Asitlik cells ÷ (3 × readings) — and a caution banner lists how many
+  readings are missing a juice value and which field is blank most often.
 ### Veri Girişi
 
 * **Add** — pick "Yeni batch" / "Yeni araç kaydı" in the record selector, fill the

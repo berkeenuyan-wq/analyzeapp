@@ -416,7 +416,7 @@ def _clean_lab(raw: pd.DataFrame, report: ImportReport) -> pd.DataFrame:
 
         rec: dict = {
             "tarih": tarih,
-            "pres_no": _int_or_none(r["pres_no"]),
+            "pres_no": _int_or_none(r["pres_no"]) or 0,  # 0 = PRES NO not noted
             "kontrol_saati": _hhmmss(r["kontrol_saati"], seconds=False),
             "urun": _clean_str(r["urun"]) or "ELMA",
             "lot_no": _clean_str(r["lot_no"]) if not _iso_date(r["lot_no"]) else None,
@@ -457,7 +457,7 @@ def read_lab_csv(path: str | Path) -> pd.DataFrame:
             continue
         rec = {
             "tarih": tarih,
-            "pres_no": _int_or_none(d.get("pres_no")),
+            "pres_no": _int_or_none(d.get("pres_no")) or 0,
             "kontrol_saati": _hhmmss(d.get("kontrol_saati"), seconds=False),
             "urun": d.get("urun") or "ELMA",
             "lot_no": d.get("lot_no") or None,

@@ -52,6 +52,8 @@ def render(*, theme: str = "dark") -> None:
         actions=lambda: _export_button("lab_export"), ratio=0.42,
     )
 
+    comp = metrics.lab_completeness(lr, None)
+
     if not summ.out_of_spec.empty:
         r = summ.out_of_spec.iloc[-1]
         bad_bits = [
@@ -64,6 +66,15 @@ def render(*, theme: str = "dark") -> None:
             f"{len(summ.out_of_spec)} ölçüm eşik dışında",
             f"Son: {fmt.date_short(r['tarih'])} {saat} · " + " · ".join(bad_bits),
             tone="bad",
+        ))
+
+    if comp.n_incomplete:
+        ui.render(ui.alert(
+            f"{comp.n_incomplete} ölçümde sıkım değeri eksik",
+            f"Sıkım Brix / pH / Asitlik alanlarının en az biri boş · en sık boş: "
+            f"{comp.worst_field or '—'} · sıkım doldurma oranı "
+            f"%{fmt.nf(comp.core_pct, 0)}",
+            tone="caution",
         ))
 
     # --- hero: mean Posa Brix (low = good extraction) --------------------
@@ -92,8 +103,8 @@ def render(*, theme: str = "dark") -> None:
         spark_color="var(--series-1)",
     ))
 
-    # --- KPI row -------------------------------------------------------------
-    kpi_row([
+    # --- KPI rows (2 × 3): five measures + lab data-entry completeness ------
+    measure_cards = [
         ui.kpi_card(
             label=f"Ort. {m['label']}",
             value=fmt.nf(summ.means.get(m["key"]), m["decimals"]),
@@ -102,10 +113,19 @@ def render(*, theme: str = "dark") -> None:
                    if not daily.empty and m["key"] in daily else None),
             delta_good_when=m["good_when"],
             delta_period="Önceki güne göre",
-            delta_suffix=(" " + m["unit"]) if m["unit"] else "",
+            delta_suffix="",  # deltas stay one line — no unit suffix on the chip
         )
         for m in _KPIS
-    ])
+    ]
+    comp_card = ui.kpi_card(
+        label="Veri tamlığı",
+        value=fmt.nf(comp.core_pct, 0), unit="%", glyph="circle-check",
+        delta=comp.daily_delta, delta_good_when="up",
+        delta_period="Önceki güne göre", delta_suffix="",
+    )
+    cards = measure_cards + [comp_card]
+    kpi_row(cards[:3])
+    kpi_row(cards[3:])
 
     # --- trend charts: Ölçüm (gün içi) · Batch · Gün ---------------------
     gran = granularity("lab", ["Ölçüm", "Batch", "Gün"], default="Batch")
@@ -370,7 +390,7 @@ def _apply_lab_delta(seed: pd.DataFrame, delta: dict) -> tuple[int, int, int]:
 def _lab_rec(d: dict) -> dict:
     return {
         "tarih": _iso_date(d.get("tarih")),
-        "pres_no": _int_or_none(d.get("pres_no")),
+        "pres_no": _int_or_none(d.get("pres_no")) or 0,
         "kontrol_saati": _hhmm(d.get("kontrol_saati")),
         "urun": (str(d["urun"]).strip() if d.get("urun") else "ELMA"),
         "lot_no": (str(d["lot_no"]).strip() if d.get("lot_no") else None),

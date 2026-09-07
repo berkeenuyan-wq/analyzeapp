@@ -687,7 +687,7 @@ def lab_readings(
 
     out = lab.copy()
     out["pres"] = out["pres_no"].map(
-        lambda n: f"Pres {int(n)}" if pd.notna(n) else None
+        lambda n: f"Pres {int(n)}" if pd.notna(n) and int(n) in (1, 2) else None
     )
     out["batch_no"] = pd.array([pd.NA] * len(out), dtype="Int64")
 
@@ -761,6 +761,70 @@ def lab_daily(
     keys = [m["key"] for m in LAB_MEASURES if m["key"] in lr.columns]
     g = lr.groupby(lr["tarih"].dt.date)[keys].mean().reset_index(names="gun")
     return g.sort_values("gun").reset_index(drop=True)
+
+
+@dataclass
+class LabCompleteness:
+    n_readings: int
+    core_pct: float | None      # filled Sıkım Brix/pH/Asitlik cells ÷ (3 × readings)
+    posa_pct: float | None      # filled Posa cells ÷ (2 × readings with a posa time)
+    by_field: dict              # measure key -> fill fraction 0..1 over all readings
+    n_incomplete: int           # readings missing at least one core (juice) field
+    worst_field: str | None     # "Sıkım Asitlik (7)" — most-often-blank core field
+    incomplete: pd.DataFrame     # the readings missing a core field
+    daily_delta: float | None = None  # core_pct change, last day vs the one before
+
+
+def lab_completeness(
+    labs: pd.DataFrame | None = None, batches: pd.DataFrame | None = None
+) -> LabCompleteness:
+    """How thoroughly the lab fills the quality sheet — did every scheduled
+    reading get its Sıkım Brix / pH / Asitlik (and Posa values where a pomace
+    check was logged)."""
+    from .config import LAB_CORE_FIELDS, LAB_MEASURES, LAB_POSA_FIELDS
+
+    lr = lab_readings(labs, batches)
+    if lr.empty:
+        return LabCompleteness(0, None, None, {}, 0, None, pd.DataFrame())
+
+    n = len(lr)
+    core_filled = sum(int(lr[f].notna().sum()) for f in LAB_CORE_FIELDS if f in lr.columns)
+    core_pct = core_filled / (3 * n) * 100 if n else None
+
+    has_posa_time = (
+        lr["posa_kontrol_saati"].notna() if "posa_kontrol_saati" in lr.columns
+        else pd.Series([False] * n, index=lr.index)
+    )
+    npt = int(has_posa_time.sum())
+    posa_filled = sum(
+        int(lr.loc[has_posa_time, f].notna().sum())
+        for f in LAB_POSA_FIELDS if f in lr.columns
+    )
+    posa_pct = posa_filled / (2 * npt) * 100 if npt else None
+
+    keys = [m["key"] for m in LAB_MEASURES if m["key"] in lr.columns]
+    by_field = {k: float(lr[k].notna().mean()) for k in keys}
+
+    core_cols = [f for f in LAB_CORE_FIELDS if f in lr.columns]
+    miss = lr[core_cols].isna().any(axis=1)
+    blanks = {f: int(lr[f].isna().sum()) for f in core_cols}
+    label_by = {m["key"]: m["label"] for m in LAB_MEASURES}
+    wf = max(blanks, key=blanks.get) if blanks else None
+    worst = f"{label_by.get(wf, wf)} ({blanks[wf]})" if (wf and blanks[wf]) else None
+
+    by_day = (
+        lr.assign(_d=lr["tarih"].dt.date)
+        .groupby("_d")
+        .apply(lambda g: g[core_cols].notna().to_numpy().sum() / (3 * len(g)) * 100,
+               include_groups=False)
+    )
+    d_delta = float(by_day.iloc[-1] - by_day.iloc[-2]) if len(by_day) >= 2 else None
+
+    return LabCompleteness(
+        n_readings=n, core_pct=core_pct, posa_pct=posa_pct, by_field=by_field,
+        n_incomplete=int(miss.sum()), worst_field=worst,
+        incomplete=lr[miss].reset_index(drop=True), daily_delta=d_delta,
+    )
 
 
 def lab_by_batch(

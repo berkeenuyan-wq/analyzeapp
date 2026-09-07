@@ -137,6 +137,12 @@ def tone_pulp(v: float | None) -> str:
     return "good" if 0.2 <= v <= 0.5 else "caution"
 
 
+# Fields the lab is expected to fill on every scheduled reading (juice side).
+# Posa fields are only expected when a POSA Kontrol saati was recorded.
+LAB_CORE_FIELDS = ["sikim_brix", "sikim_ph", "sikim_asitlik"]
+LAB_POSA_FIELDS = ["posa_brix", "posa_nem_pct"]
+
+
 # UI registry: which lab columns get a KPI tile / threshold tone, and how a
 # rising value reads (good_when drives the DeltaChip colour, per the design kit).
 LAB_MEASURES = [

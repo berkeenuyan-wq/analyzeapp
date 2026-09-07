@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS truck (
 CREATE TABLE IF NOT EXISTS lab (
     id                    INTEGER PRIMARY KEY AUTOINCREMENT,
     tarih                 TEXT NOT NULL,     -- ISO date 'YYYY-MM-DD' (Üretim Tarihi)
-    pres_no               INTEGER,           -- 1 / 2 (PRES NO on the sheet); NULL if not noted
+    pres_no               INTEGER NOT NULL DEFAULT 0,  -- 1 / 2 (PRES NO); 0 = belirtilmemiş
     kontrol_saati         TEXT,              -- 'HH:MM' juice sample time
     urun                  TEXT,              -- Ürün Adı (ELMA)
     lot_no                TEXT,
