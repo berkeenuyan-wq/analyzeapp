@@ -15,7 +15,8 @@ import streamlit as st
 from .. import charts, db, excel_io, fmt, metrics, ui
 from ..config import LAB_MEASURES, LAB_SPECS_CONFIRMED, PRESS_1, PRESS_2
 from ._common import (
-    chart_card, granularity, html_card, kpi_row, page_header, plot, table_card,
+    chart_card, granularity, html_card, kpi_row, marked_view, marking_toggle,
+    page_header, plot, table_card,
 )
 
 _HERO = next(m for m in LAB_MEASURES if m["key"] == "posa_brix")
@@ -244,6 +245,39 @@ _L_EDIT_COLS = [
     "pulp_pct", "giris_pulp", "lot_no", "notlar",
 ]
 
+_L_LABELS = {
+    "tarih": "Tarih", "pres_no": "Pres No", "kontrol_saati": "Kontrol saati",
+    "urun_alinan_tank_no": "Tank no", "sikim_brix": "Sıkım Brix",
+    "sikim_ph": "Sıkım pH", "sikim_asitlik": "Sıkım Asitlik",
+    "posa_kontrol_saati": "Posa saati", "posa_brix": "Posa Brix",
+    "posa_nem_pct": "Posa Nem %", "pulp_pct": "Pulp %", "giris_pulp": "Giriş Pulp",
+    "lot_no": "Lot No", "notlar": "Notlar",
+}
+
+
+_L_NUM_COLS = ("Sıkım Brix", "Sıkım pH", "Sıkım Asitlik", "Posa Brix",
+               "Posa Nem %", "Pulp %", "Giriş Pulp")
+
+
+def _lab_display(seed: pd.DataFrame) -> pd.DataFrame:
+    d = seed.drop(columns=["id"], errors="ignore").rename(columns=_L_LABELS)
+    if "Tarih" in d.columns:
+        d["Tarih"] = d["Tarih"].map(
+            lambda v: v.strftime("%d.%m.%Y") if hasattr(v, "strftime") else "")
+    if "Pres No" in d.columns:
+        d["Pres No"] = d["Pres No"].map(lambda v: "" if pd.isna(v) else str(int(v)))
+    if "Tank no" in d.columns:
+        d["Tank no"] = d["Tank no"].map(lambda v: "" if pd.isna(v) else str(int(v)))
+    for c in _L_NUM_COLS:
+        if c in d.columns:
+            d[c] = pd.to_numeric(d[c], errors="coerce").map(
+                lambda v: "" if pd.isna(v) else f"{v:.2f}".rstrip("0").rstrip("."))
+    return d.astype(object).where(d.notna(), "").replace({None: ""})
+
+
+def _lab_row_label(r: dict) -> str:
+    return f"{r.get('Tarih', '')} · Pres {r.get('Pres No', '')} · {r.get('Kontrol saati', '')}"
+
 
 def _editable_lab_table(lab: pd.DataFrame) -> None:
     if lab.empty:
@@ -258,8 +292,12 @@ def _editable_lab_table(lab: pd.DataFrame) -> None:
         ui.render(
             '<div class="up-charthead"><span class="up-charthead__title">Kalite Ölçüm Tablosu</span>'
             f'<span class="up-charthead__sub">{len(seed)} kayıt · hücreyi düzenleyin · '
-            'en alttan satır ekleyin · satır seçip silin</span></div>'
+            'en alttan satır ekleyin · satır seçip silin · '
+            '“İşaretle” ile satır / sütun / hücre renklendirin</span></div>'
         )
+        if marking_toggle("lab"):
+            marked_view("lab", _lab_display(seed), _lab_row_label)
+            return
         st.data_editor(
             seed,
             key="lab_editor",
