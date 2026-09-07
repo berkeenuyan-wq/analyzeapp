@@ -9,6 +9,7 @@ build supports; that is tracked separately. This page is the working builder.)
 """
 from __future__ import annotations
 
+import plotly.graph_objects as go
 import streamlit as st
 
 from .. import canvas as cv
@@ -82,14 +83,20 @@ def _panel(state, panels, p, i, keys, by_key, pal, theme) -> None:
             format_func=lambda k: by_key[k][0], key=f"cv_vars_{pid}",
             placeholder="Değişken ekle — posa nem %, F/P verim, …")
 
+        dual = st.checkbox(
+            "Ölçekler çok farklıysa küçük değişkeni sağ eksene al",
+            value=p.get("dual", True), key=f"cv_dual_{pid}")
+
         new_series = [{"dataset": by_key[k][1], "column": k.split(":", 1)[1], "agg": "mean"}
                       for k in picked]
         changed = (new_series != p["series"] or xkey != p.get("xkey")
-                   or title.strip() != (p.get("title") or ""))
+                   or title.strip() != (p.get("title") or "")
+                   or bool(dual) != bool(p.get("dual", True)))
         if changed:
             p["series"] = new_series
             p["xkey"] = xkey
             p["title"] = title.strip()
+            p["dual"] = bool(dual)
             cv.save(state)
 
         if deleted:
@@ -108,18 +115,79 @@ def _chart(p, pal, theme) -> None:
     xk = p.get("xkey", "gun")
     labels = [f"#{int(v)}" if xk == "batch_no" and _isnum(v) else custom.x_label(v)
               for v in gf.index]
-    series = [{"name": str(c), "values": gf[c].round(3).tolist(), "series": j + 1}
-              for j, c in enumerate(gf.columns)]
-    legend = [(str(c), pal["series"][j % len(pal["series"])])
-              for j, c in enumerate(gf.columns)]
-    with chart_card(cv.panel_title(p),
-                    f'{_XCHOICES.get(xk, xk)} ekseni · {len(series)} değişken',
-                    legend=legend if len(series) > 1 else None,
+    cols = list(gf.columns)
+    colors = pal["series"]
+
+    # When one series sits on a very different scale, move it to a right-hand
+    # axis so both stay readable (line charts only; bars on split axes look bad).
+    split = (_dual_split(gf) if p.get("dual", True) and p.get("type") != "bar"
+             and len(cols) >= 2 else None)
+    right = set(split[1]) if split else set()
+
+    legend = [(str(c) + (" · sağ eksen" if c in right else ""),
+               colors[j % len(colors)]) for j, c in enumerate(cols)]
+    sub = f'{_XCHOICES.get(xk, xk)} ekseni · {len(cols)} değişken'
+    if split:
+        sub += " · çift eksen"
+
+    with chart_card(cv.panel_title(p), sub,
+                    legend=legend if len(cols) > 1 else None,
                     key=f"cc_{p['id']}"):
-        fn = charts.bar_chart if p.get("type") == "bar" else charts.line_chart
-        fig = fn(labels, series, theme=theme, height=300,
-                 **({} if p.get("type") == "bar" else {"fill": False}))
+        if split:
+            fig = _fig_dual(labels, gf, right, colors, theme)
+        else:
+            series = [{"name": str(c), "values": gf[c].round(3).tolist(), "series": j + 1}
+                      for j, c in enumerate(cols)]
+            fn = charts.bar_chart if p.get("type") == "bar" else charts.line_chart
+            fig = fn(labels, series, theme=theme, height=300,
+                     **({} if p.get("type") == "bar" else {"fill": False}))
         plot(fig, key=f"ccfig_{p['id']}")
+
+
+def _dual_split(gf, factor: float = 8.0):
+    """Return ``(left_cols, right_cols)`` when the series magnitudes differ by
+    more than ``factor``×, else ``None``. Magnitude = median of positive |value|.
+    """
+    mag = {}
+    for c in gf.columns:
+        s = gf[c].abs()
+        s = s[(s > 0) & s.notna()]
+        mag[c] = float(s.median()) if len(s) else None
+    valid = {c: m for c, m in mag.items() if m}
+    if len(valid) < 2:
+        return None
+    hi = max(valid.values())
+    left = [c for c in gf.columns if valid.get(c, hi) >= hi / factor]
+    right = [c for c in gf.columns if c not in left]
+    return (left, right) if left and right else None
+
+
+def _fig_dual(labels, gf, right: set, colors, theme) -> go.Figure:
+    pal = charts.palette(theme)
+    cols = list(gf.columns)
+    fig = go.Figure()
+    for j, c in enumerate(cols):
+        color = colors[j % len(colors)]
+        fig.add_trace(go.Scatter(
+            x=labels, y=gf[c].round(3).tolist(), name=str(c),
+            mode="lines+markers",
+            line=dict(color=color, width=2, shape="linear"),
+            marker=dict(size=6, color=color, line=dict(width=1.5, color=pal["paper"])),
+            yaxis="y2" if c in right else "y",
+            hovertemplate="%{y:.2f}<extra>" + str(c) + "</extra>",
+        ))
+    lay = charts._layout(pal, 300, legend=len(cols) > 1)
+    left_lbl = ", ".join(str(c).split(" · ")[0] for c in cols if c not in right)
+    right_lbl = ", ".join(str(c).split(" · ")[0] for c in cols if c in right)
+    lay["yaxis"]["title"] = dict(text=left_lbl, font=dict(size=10, color=pal["axis"]))
+    lay["yaxis2"] = dict(
+        overlaying="y", side="right", showgrid=False, zeroline=False,
+        tickfont=dict(family=charts._MONO, size=11, color=pal["axis"]),
+        title=dict(text=right_lbl, font=dict(size=10, color=pal["axis"])),
+    )
+    lay["margin"] = dict(l=48, r=54, t=10, b=40)
+    fig.update_layout(**lay)
+    return fig
 
 
 def _isnum(v) -> bool:
