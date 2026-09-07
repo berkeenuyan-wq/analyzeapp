@@ -147,11 +147,16 @@ def marking_toggle(grid_id: str) -> bool:
     return mode == "İşaretle"
 
 
+_KIND_LABEL = {"cell": "Hücre", "row": "Satır", "col": "Sütun"}
+
+
 def marked_view(grid_id: str, display_df, row_label_fn) -> None:
-    """Read-only styled table + an add/remove-marks editor.
+    """Read-only styled table + a colour-mark editor. Pick a colour from the
+    wheel, choose one or more rows and/or columns, paint. Marks persist and
+    repaint on every load.
 
     ``display_df`` must already use the human column labels; ``row_label_fn``
-    maps a row dict to the label shown in the row picker and stored in a mark.
+    maps a row dict to the row's stable label (stored in each mark).
     """
     from .. import marks as mk
 
@@ -160,42 +165,65 @@ def marked_view(grid_id: str, display_df, row_label_fn) -> None:
     st.dataframe(mk.style_frame(display_df, marks, row_labels),
                  width="stretch", hide_index=True)
 
-    with st.expander("İşaret ekle / kaldır", expanded=not marks):
-        _mark_editor(grid_id, display_df, list(dict.fromkeys(row_labels)), marks)
+    rows_all = list(dict.fromkeys(row_labels))
+    cols_all = list(display_df.columns)
+
+    top = st.columns([0.9, 0.9, 1.4], vertical_alignment="bottom")
+    kind = top[0].selectbox("Kapsam", ["cell", "row", "col"],
+                            format_func=_KIND_LABEL.get, key=f"{grid_id}_mk_kind")
+    hexc = top[1].color_picker("Renk", "#e8b53f", key=f"{grid_id}_mk_color")
+
+    sel_rows = sel_cols = []
+    if kind in ("cell", "row"):
+        sel_rows = st.multiselect("Satırlar", rows_all, key=f"{grid_id}_mk_rows",
+                                  placeholder="Bir veya birden çok satır seç")
+    if kind in ("cell", "col"):
+        sel_cols = st.multiselect("Sütunlar", cols_all, key=f"{grid_id}_mk_cols",
+                                  placeholder="Bir veya birden çok sütun seç")
+
+    ok = (sel_rows if kind == "row" else sel_cols if kind == "col"
+          else sel_rows and sel_cols)
+    b = st.columns([1, 1, 3])
+    if b[0].button("Boya", key=f"{grid_id}_mk_paint", type="primary",
+                   disabled=not ok, width="stretch"):
+        _paint(grid_id, marks, kind, sel_rows, sel_cols, hexc)
+    if b[1].button("İşareti kaldır", key=f"{grid_id}_mk_unpaint",
+                   disabled=not ok, width="stretch"):
+        _paint(grid_id, marks, kind, sel_rows, sel_cols, None)
+
+    if marks:
+        chips = "".join(
+            f'<span style="display:inline-block;background:{mk.css_color(m.get("color",""))};'
+            f'border-radius:5px;padding:1px 7px;margin:2px 4px 2px 0;font-size:12px">'
+            f'{escape(mk.describe(m))}</span>' for m in marks)
+        st.markdown(f"**{len(marks)} işaret** &nbsp; {chips}", unsafe_allow_html=True)
+        if st.button("Tüm işaretleri temizle", key=f"{grid_id}_mk_clearall"):
+            mk.clear(grid_id)
+            st.rerun()
 
 
-_KIND_LABEL = {"row": "Satır", "col": "Sütun", "cell": "Hücre"}
-
-
-def _mark_editor(grid_id: str, display_df, row_options: list, marks: list) -> None:
+def _paint(grid_id, marks, kind, rows, cols, hexc) -> None:
     from .. import marks as mk
 
-    c = st.columns([0.8, 1.5, 1.5, 1, 0.7], vertical_alignment="bottom")
-    kind = c[0].selectbox("Tür", ["row", "col", "cell"],
-                          format_func=_KIND_LABEL.get, key=f"{grid_id}_mk_kind")
-    row = (c[1].selectbox("Satır", row_options, key=f"{grid_id}_mk_row")
-           if kind in ("row", "cell") and row_options else None)
-    col = (c[2].selectbox("Sütun", list(display_df.columns), key=f"{grid_id}_mk_col")
-           if kind in ("col", "cell") else None)
-    color = c[3].selectbox("Renk", list(mk.PALETTE),
-                           format_func=lambda k: mk.PALETTE[k][0],
-                           key=f"{grid_id}_mk_color")
-    if c[4].button("Ekle", key=f"{grid_id}_mk_add", type="primary", width="stretch"):
-        marks.append({"kind": kind, "color": color, "row": row, "col": col})
-        mk.save(grid_id, marks)
-        st.rerun()
+    def drop(pred):
+        marks[:] = [m for m in marks if not pred(m)]
 
-    for i, m in enumerate(marks):
-        r = st.columns([5, 0.6])
-        r[0].markdown(
-            f'<span style="display:inline-block;width:10px;height:10px;border-radius:3px;'
-            f'background:{mk.PALETTE.get(m.get("color",""), ("", "#888"))[1]};'
-            f'vertical-align:middle;margin-right:6px"></span>{mk.describe(m)}',
-            unsafe_allow_html=True)
-        if r[1].button("Sil", key=f"{grid_id}_mk_del_{i}", width="stretch"):
-            marks.pop(i)
-            mk.save(grid_id, marks)
-            st.rerun()
-    if marks and st.button("Tüm işaretleri temizle", key=f"{grid_id}_mk_clear"):
-        mk.clear(grid_id)
-        st.rerun()
+    if kind == "row":
+        for r in rows:
+            drop(lambda m: m["kind"] == "row" and m.get("row") == r)
+            if hexc:
+                marks.append({"kind": "row", "color": hexc, "row": r, "col": None})
+    elif kind == "col":
+        for c in cols:
+            drop(lambda m: m["kind"] == "col" and m.get("col") == c)
+            if hexc:
+                marks.append({"kind": "col", "color": hexc, "row": None, "col": c})
+    else:
+        for r in rows:
+            for c in cols:
+                drop(lambda m: m["kind"] == "cell" and m.get("row") == r
+                     and m.get("col") == c)
+                if hexc:
+                    marks.append({"kind": "cell", "color": hexc, "row": r, "col": c})
+    mk.save(grid_id, marks)
+    st.rerun()

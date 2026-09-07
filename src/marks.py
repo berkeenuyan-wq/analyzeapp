@@ -26,6 +26,15 @@ PALETTE: dict[str, tuple[str, str]] = {
 }
 
 
+def css_color(value: str) -> str:
+    """A stored colour may be a palette key or a raw #hex — return CSS."""
+    if value in PALETTE:
+        return PALETTE[value][1]
+    if isinstance(value, str) and value.startswith("#") and len(value) in (4, 7):
+        return value + "66"  # ~40% alpha so grid text stays readable
+    return "rgba(255,255,255,.12)"
+
+
 def _key(grid_id: str) -> str:
     return f"marks:{grid_id}"
 
@@ -65,10 +74,7 @@ def style_frame(df: pd.DataFrame, marks: list[dict], row_labels: pd.Series):
     ``df.index`` giving each row's display label."""
     css = pd.DataFrame("", index=df.index, columns=df.columns)
     for m in marks:
-        colour = PALETTE.get(m.get("color", ""), (None, ""))[1]
-        if not colour:
-            continue
-        bg = f"background-color: {colour}"
+        bg = f"background-color: {css_color(m.get('color', ''))}"
         if m["kind"] == "col" and m.get("col") in css.columns:
             css.loc[:, m["col"]] = bg
         elif m["kind"] == "row":
