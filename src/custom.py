@@ -120,36 +120,32 @@ def _daily_index(df: pd.DataFrame):
 
 
 def grouped_frame(series: list[dict], xkey: str = "gun") -> pd.DataFrame:
-    """One column per series, indexed by the shared X.
+    """One column per series, indexed by the shared X and aligned.
 
-    ``series`` items: ``{"dataset", "column", "agg", "label"?}``. With
-    ``xkey == "gun"`` every series is aggregated per day and aligned on the
-    date, so panels can mix datasets. Otherwise (single dataset) rows are taken
-    raw, sorted by ``xkey``.
+    ``series`` items: ``{"dataset", "column", "agg"?, "label"?}``.
+    ``xkey`` is ``"gun"`` (align on calendar day) or any real column present in
+    the series' dataset (e.g. ``"batch_no"``). Series whose dataset lacks the
+    chosen X column are dropped. Duplicate X values are aggregated (mean by
+    default), so different datasets can share one chart.
     """
     series = [s for s in series if s.get("dataset") and s.get("column")]
-    if not series:
-        return pd.DataFrame()
-    one_ds = len({s["dataset"] for s in series}) == 1
-    raw = xkey != "gun" and one_ds
-
     cols: list[pd.Series] = []
-    for i, s in enumerate(series):
+    for s in series:
         df = load_dataset(s["dataset"])
         col = s["column"]
         if df.empty or col not in df.columns:
             continue
-        name = s.get("label") or f'{col_label(col)} · {dataset_label(s["dataset"])}'
-        vals = pd.to_numeric(df[col], errors="coerce")
-        if raw and xkey in df.columns:
-            g = pd.Series(vals.values, index=df[xkey].map(x_label), name=name)
-            g = g[~g.index.duplicated(keep="first")]
-        else:
+        if xkey == "gun":
             key = _daily_index(df)
-            if key is None:
-                continue
-            g = vals.groupby(key).agg(_PANDAS_AGG.get(s.get("agg", "mean"), "mean"))
-            g.name = name
+        elif xkey in df.columns:
+            key = df[xkey]
+        else:
+            continue
+        if key is None:
+            continue
+        vals = pd.to_numeric(df[col], errors="coerce")
+        g = vals.groupby(key).agg(_PANDAS_AGG.get(s.get("agg", "mean"), "mean"))
+        g.name = s.get("label") or f'{col_label(col)} · {dataset_label(s["dataset"])}'
         cols.append(g)
     if not cols:
         return pd.DataFrame()

@@ -54,41 +54,63 @@ def reset() -> None:
     db.del_meta(_KEY)
 
 
+X_OPTIONS = {"gun": "Gün", "batch_no": "Batch", "tarih": "Tarih"}
+
+
 def new_panel(ptype: str, existing: list[dict]) -> dict:
     w, h = _DEFAULT_WH.get(ptype, (6, 4))
     y = max((p.get("y", 0) + p.get("h", 4) for p in existing), default=0)
     p = {
         "id": f"p{int(time.time() * 1000) % 100_000_000:08d}",
-        "type": ptype, "title": PANEL_TYPES.get(ptype, ptype).split(" —")[0].split(" (")[0],
-        "x": 0, "y": y, "w": w, "h": h,
+        "type": ptype, "x": 0, "y": y, "w": w, "h": h,
     }
     if ptype in ("kpi", "ratio"):
-        p.update(dataset="batch", column=None, agg="mean", unit="", decimals=1)
-        if ptype == "ratio":
-            p.update(dataset_b="batch", column_b=None, agg_b="mean", unit="%")
+        p.update(series=[], agg="mean", unit="", decimals=1)
     elif ptype in ("line", "bar"):
-        p.update(xkey="gun",
-                 series=[{"dataset": "batch", "column": None, "agg": "mean"}])
+        p.update(xkey="gun", series=[])
     elif ptype == "table":
         p.update(dataset="batch", columns=[], rows=8)
     return p
+
+
+def panel_title(p: dict) -> str:
+    """Auto label from the panel's bound columns."""
+    if p.get("title"):
+        return p["title"]
+    ser = p.get("series", [])
+    if p["type"] == "ratio":
+        parts = [custom.col_label(s["column"]) for s in ser[:2] if s.get("column")]
+        return " ÷ ".join(parts) if len(parts) == 2 else "Oran"
+    if ser:
+        names = [custom.col_label(s["column"]) for s in ser if s.get("column")]
+        if names:
+            head = " + ".join(names[:3]) + ("…" if len(names) > 3 else "")
+            if p["type"] in ("line", "bar"):
+                head += f" · {X_OPTIONS.get(p.get('xkey', 'gun'), p.get('xkey'))}"
+            return head
+    if p["type"] == "table":
+        return f"{custom.dataset_label(p.get('dataset', ''))} tablosu"
+    return PANEL_TYPES.get(p["type"], p["type"]).split(" —")[0].split(" (")[0]
 
 
 # --------------------------------------------------------------------------- #
 # panel -> data
 # --------------------------------------------------------------------------- #
 def kpi_value(p: dict) -> str:
-    if not p.get("column"):
+    ser = p.get("series", [])
+    if not ser or not ser[0].get("column"):
         return "—"
-    return custom.kpi_text(p["dataset"], p["column"], p.get("agg", "mean"),
+    s = ser[0]
+    return custom.kpi_text(s["dataset"], s["column"], s.get("agg", p.get("agg", "mean")),
                            int(p.get("decimals", 1)))
 
 
 def ratio_value(p: dict) -> str:
-    a = custom.aggregate(p.get("dataset"), p.get("column"), p.get("agg", "mean")) \
-        if p.get("column") else None
-    b = custom.aggregate(p.get("dataset_b"), p.get("column_b"), p.get("agg_b", "mean")) \
-        if p.get("column_b") else None
+    ser = [s for s in p.get("series", []) if s.get("column")]
+    if len(ser) < 2:
+        return "—"
+    a = custom.aggregate(ser[0]["dataset"], ser[0]["column"], ser[0].get("agg", "mean"))
+    b = custom.aggregate(ser[1]["dataset"], ser[1]["column"], ser[1].get("agg", "mean"))
     if a is None or not b:
         return "—"
     from . import fmt
