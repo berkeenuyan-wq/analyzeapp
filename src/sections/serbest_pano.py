@@ -9,7 +9,6 @@ build supports; that is tracked separately. This page is the working builder.)
 """
 from __future__ import annotations
 
-import plotly.graph_objects as go
 import streamlit as st
 
 from .. import canvas as cv
@@ -127,20 +126,25 @@ def _chart(p, pal, theme) -> None:
     legend = [(str(c) + (" · sağ eksen" if c in right else ""),
                colors[j % len(colors)]) for j, c in enumerate(cols)]
     sub = f'{_XCHOICES.get(xk, xk)} ekseni · {len(cols)} değişken'
+    footer = None
     if split:
         sub += " · çift eksen"
+        left_lbl = " · ".join(_short(c) for c in cols if c not in right)
+        right_lbl = " · ".join(_short(c) for c in cols if c in right)
+        footer = f"Sol eksen: {left_lbl} · sağ eksen: {right_lbl}"
 
     with chart_card(cv.panel_title(p), sub,
                     legend=legend if len(cols) > 1 else None,
-                    key=f"cc_{p['id']}"):
-        if split:
-            fig = _fig_dual(labels, gf, right, colors, theme)
-        else:
+                    footer=footer, key=f"cc_{p['id']}"):
+        if p.get("type") == "bar":
             series = [{"name": str(c), "values": gf[c].round(3).tolist(), "series": j + 1}
                       for j, c in enumerate(cols)]
-            fn = charts.bar_chart if p.get("type") == "bar" else charts.line_chart
-            fig = fn(labels, series, theme=theme, height=300,
-                     **({} if p.get("type") == "bar" else {"fill": False}))
+            fig = charts.bar_chart(labels, series, theme=theme, height=300)
+        else:
+            series = [{"name": str(c), "values": gf[c].round(3).tolist(), "series": j + 1,
+                       **({"axis": "right"} if c in right else {})}
+                      for j, c in enumerate(cols)]
+            fig = charts.dual_area(labels, series, theme=theme, height=300)
         plot(fig, key=f"ccfig_{p['id']}")
 
 
@@ -162,32 +166,8 @@ def _dual_split(gf, factor: float = 8.0):
     return (left, right) if left and right else None
 
 
-def _fig_dual(labels, gf, right: set, colors, theme) -> go.Figure:
-    pal = charts.palette(theme)
-    cols = list(gf.columns)
-    fig = go.Figure()
-    for j, c in enumerate(cols):
-        color = colors[j % len(colors)]
-        fig.add_trace(go.Scatter(
-            x=labels, y=gf[c].round(3).tolist(), name=str(c),
-            mode="lines+markers",
-            line=dict(color=color, width=2, shape="linear"),
-            marker=dict(size=6, color=color, line=dict(width=1.5, color=pal["paper"])),
-            yaxis="y2" if c in right else "y",
-            hovertemplate="%{y:.2f}<extra>" + str(c) + "</extra>",
-        ))
-    lay = charts._layout(pal, 300, legend=len(cols) > 1)
-    left_lbl = ", ".join(str(c).split(" · ")[0] for c in cols if c not in right)
-    right_lbl = ", ".join(str(c).split(" · ")[0] for c in cols if c in right)
-    lay["yaxis"]["title"] = dict(text=left_lbl, font=dict(size=10, color=pal["axis"]))
-    lay["yaxis2"] = dict(
-        overlaying="y", side="right", showgrid=False, zeroline=False,
-        tickfont=dict(family=charts._MONO, size=11, color=pal["axis"]),
-        title=dict(text=right_lbl, font=dict(size=10, color=pal["axis"])),
-    )
-    lay["margin"] = dict(l=48, r=54, t=10, b=40)
-    fig.update_layout(**lay)
-    return fig
+def _short(c) -> str:
+    return str(c).split(" · ")[0]
 
 
 def _isnum(v) -> bool:
