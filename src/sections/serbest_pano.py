@@ -9,6 +9,7 @@ build supports; that is tracked separately. This page is the working builder.)
 """
 from __future__ import annotations
 
+import plotly.graph_objects as go
 import streamlit as st
 
 from .. import canvas as cv
@@ -16,6 +17,7 @@ from .. import charts, custom
 from ._common import chart_card, page_header, plot
 
 _XCHOICES = {"gun": "Gün", "batch_no": "Batch", "tarih": "Tarih"}
+_STYLES = {"area": "Alan (dolgulu)", "line": "Çizgi (ince)"}
 
 
 def _var_options() -> list[tuple[str, str, str]]:
@@ -82,20 +84,29 @@ def _panel(state, panels, p, i, keys, by_key, pal, theme) -> None:
             format_func=lambda k: by_key[k][0], key=f"cv_vars_{pid}",
             placeholder="Değişken ekle — posa nem %, F/P verim, …")
 
-        dual = st.checkbox(
+        opt = st.columns([1.7, 1.3], vertical_alignment="center")
+        dual = opt[0].checkbox(
             "Ölçekler çok farklıysa küçük değişkeni sağ eksene al",
-            value=p.get("dual", True), key=f"cv_dual_{pid}")
+            value=p.get("dual", True), key=f"cv_dual_{pid}",
+            disabled=p.get("type") == "bar")
+        style = opt[1].radio(
+            "Stil", list(_STYLES), horizontal=True,
+            index=list(_STYLES).index(p.get("style", "area")),
+            format_func=lambda s: _STYLES[s], key=f"cv_style_{pid}",
+            label_visibility="collapsed", disabled=p.get("type") == "bar")
 
         new_series = [{"dataset": by_key[k][1], "column": k.split(":", 1)[1], "agg": "mean"}
                       for k in picked]
         changed = (new_series != p["series"] or xkey != p.get("xkey")
                    or title.strip() != (p.get("title") or "")
-                   or bool(dual) != bool(p.get("dual", True)))
+                   or bool(dual) != bool(p.get("dual", True))
+                   or style != p.get("style", "area"))
         if changed:
             p["series"] = new_series
             p["xkey"] = xkey
             p["title"] = title.strip()
             p["dual"] = bool(dual)
+            p["style"] = style
             cv.save(state)
 
         if deleted:
@@ -140,6 +151,13 @@ def _chart(p, pal, theme) -> None:
             series = [{"name": str(c), "values": gf[c].round(3).tolist(), "series": j + 1}
                       for j, c in enumerate(cols)]
             fig = charts.bar_chart(labels, series, theme=theme, height=300)
+        elif p.get("style", "area") == "line":
+            if split:
+                fig = _fig_dual(labels, gf, right, colors, theme)
+            else:
+                series = [{"name": str(c), "values": gf[c].round(3).tolist(), "series": j + 1}
+                          for j, c in enumerate(cols)]
+                fig = charts.line_chart(labels, series, theme=theme, height=300, fill=False)
         else:
             series = [{"name": str(c), "values": gf[c].round(3).tolist(), "series": j + 1,
                        **({"axis": "right"} if c in right else {})}
@@ -164,6 +182,35 @@ def _dual_split(gf, factor: float = 8.0):
     left = [c for c in gf.columns if valid.get(c, hi) >= hi / factor]
     right = [c for c in gf.columns if c not in left]
     return (left, right) if left and right else None
+
+
+def _fig_dual(labels, gf, right: set, colors, theme) -> go.Figure:
+    """Thin lines + markers on a shared/left + right axis (the pre-area style)."""
+    pal = charts.palette(theme)
+    cols = list(gf.columns)
+    fig = go.Figure()
+    for j, c in enumerate(cols):
+        color = colors[j % len(colors)]
+        fig.add_trace(go.Scatter(
+            x=labels, y=gf[c].round(3).tolist(), name=str(c),
+            mode="lines+markers",
+            line=dict(color=color, width=2),
+            marker=dict(size=6, color=color, line=dict(width=1.5, color=pal["paper"])),
+            yaxis="y2" if c in right else "y",
+            hovertemplate="%{y:.2f}<extra>" + str(c) + "</extra>",
+        ))
+    lay = charts._layout(pal, 300, legend=len(cols) > 1)
+    lay["yaxis"]["title"] = dict(
+        text=" · ".join(_short(c) for c in cols if c not in right),
+        font=dict(size=10, color=pal["axis"]))
+    lay["yaxis2"] = dict(
+        overlaying="y", side="right", showgrid=False, zeroline=False,
+        tickfont=dict(family=charts._MONO, size=11, color=pal["axis"]),
+        title=dict(text=" · ".join(_short(c) for c in cols if c in right),
+                   font=dict(size=10, color=pal["axis"])))
+    lay["margin"] = dict(l=48, r=54, t=10, b=40)
+    fig.update_layout(**lay)
+    return fig
 
 
 def _short(c) -> str:
