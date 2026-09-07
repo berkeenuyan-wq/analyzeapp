@@ -763,6 +763,30 @@ def lab_daily(
     return g.sort_values("gun").reset_index(drop=True)
 
 
+def lab_by_batch(
+    labs: pd.DataFrame | None = None, batches: pd.DataFrame | None = None
+) -> pd.DataFrame:
+    """One row per batch that carries at least one reading — mean of every lab
+    measure plus the reading count. Batch order tracks intraday progression."""
+    from .config import LAB_MEASURES
+
+    lr = lab_readings(labs, batches)
+    if lr.empty:
+        return pd.DataFrame()
+    matched = lr[lr["batch_no"].notna()]
+    if matched.empty:
+        return pd.DataFrame()
+    keys = [m["key"] for m in LAB_MEASURES if m["key"] in lr.columns]
+    named: dict = {
+        "tarih": ("tarih", "first"),
+        "pres": ("pres", "first"),
+        "olcum": ("batch_no", "size"),
+    }
+    named.update({k: (k, "mean") for k in keys})
+    g = matched.groupby("batch_no").agg(**named).reset_index()
+    return g.sort_values("batch_no").reset_index(drop=True)
+
+
 def last_delta(series: pd.Series) -> float | None:
     """Absolute change between the last two points of a series (skipping NaN)."""
     s = series.dropna()

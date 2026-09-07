@@ -15,11 +15,11 @@ import streamlit as st
 from .. import charts, db, excel_io, fmt, metrics, ui
 from ..config import LAB_MEASURES, LAB_SPECS_CONFIRMED, PRESS_1, PRESS_2
 from ._common import (
-    chart_card, html_card, kpi_row, page_header, plot, table_card,
+    chart_card, granularity, html_card, kpi_row, page_header, plot, table_card,
 )
 
 _HERO = next(m for m in LAB_MEASURES if m["key"] == "posa_brix")
-_KPIS = [m for m in LAB_MEASURES if m["key"] != "posa_brix"]
+_KPIS = LAB_MEASURES  # all five measures get a KPI tile (Posa Brix included)
 
 _UNCONFIRMED_NOTE = (
     "Eşik bantları (Posa Brix, Posa Nem, Sıkım pH/Brix) geçicidir — laboratuvarın "
@@ -107,39 +107,73 @@ def render(*, theme: str = "dark") -> None:
         for m in _KPIS
     ])
 
-    # --- trend charts -----------------------------------------------------
-    if not daily.empty:
-        labels = [fmt.date_short(d) for d in daily["gun"]]
-        pal = charts.palette(theme)
-        c1, c2 = st.columns(2, gap="small")
-        with c1:
-            with chart_card("Brix eğilimi", "Sıkım vs posa · °Bx · gün ortalaması",
-                            legend=[("Sıkım Brix", pal["series"][1]),
-                                    ("Posa Brix", pal["series"][0])],
-                            key="lab_brix"):
-                fig = charts.line_chart(
-                    labels,
-                    [
-                        {"name": "Sıkım Brix", "values": daily["sikim_brix"].round(2).tolist(), "series": 2},
-                        {"name": "Posa Brix", "values": daily["posa_brix"].round(2).tolist(), "series": 1},
-                    ],
-                    theme=theme, height=248, fill=False,
-                )
-                plot(fig, key="lab_brix_fig")
-        with c2:
-            with chart_card("Sıkım pH ve asitlik", "gün ortalaması",
-                            legend=[("Sıkım pH", pal["series"][2]),
-                                    ("Sıkım Asitlik", pal["series"][3])],
-                            key="lab_ph"):
-                fig = charts.line_chart(
-                    labels,
-                    [
-                        {"name": "Sıkım pH", "values": daily["sikim_ph"].round(2).tolist(), "series": 3},
-                        {"name": "Sıkım Asitlik", "values": daily["sikim_asitlik"].round(2).tolist(), "series": 4},
-                    ],
-                    theme=theme, height=248, fill=False,
-                )
-                plot(fig, key="lab_ph_fig")
+    # --- trend charts: Ölçüm (gün içi) · Batch · Gün ---------------------
+    gran = granularity("lab", ["Ölçüm", "Batch", "Gün"], default="Batch")
+    pal = charts.palette(theme)
+    base, labels, note = _series_for(lr, gran, daily)
+
+    def _col(key: str):
+        return base[key].round(2).tolist() if (not base.empty and key in base.columns) else []
+
+    c1, c2 = st.columns(2, gap="small")
+    with c1:
+        with chart_card("Brix eğilimi", f"Sıkım vs posa · °Bx · {note}",
+                        legend=[("Sıkım Brix", pal["series"][1]),
+                                ("Posa Brix", pal["series"][0])],
+                        key="lab_brix"):
+            fig = charts.line_chart(
+                labels,
+                [
+                    {"name": "Sıkım Brix", "values": _col("sikim_brix"), "series": 2},
+                    {"name": "Posa Brix", "values": _col("posa_brix"), "series": 1},
+                ],
+                theme=theme, height=248, fill=False,
+            )
+            plot(fig, key="lab_brix_fig")
+    with c2:
+        with chart_card("Sıkım pH ve asitlik", note,
+                        legend=[("Sıkım pH", pal["series"][2]),
+                                ("Sıkım Asitlik", pal["series"][3])],
+                        key="lab_ph"):
+            fig = charts.line_chart(
+                labels,
+                [
+                    {"name": "Sıkım pH", "values": _col("sikim_ph"), "series": 3},
+                    {"name": "Sıkım Asitlik", "values": _col("sikim_asitlik"), "series": 4},
+                ],
+                theme=theme, height=248, fill=False,
+            )
+            plot(fig, key="lab_ph_fig")
+
+    # --- batch-by-batch quality (intraday progression) -----------------
+    bb = metrics.lab_by_batch(lr, None)
+    if not bb.empty:
+        def _bmeas(key: str, decimals: int):
+            m = next(mm for mm in LAB_MEASURES if mm["key"] == key)
+            return lambda r: (
+                ui.badge(fmt.nf(r[key], decimals), m["tone"](r[key]), small=True)
+                if r.get(key) is not None and not pd.isna(r[key]) else ui.muted_dash()
+            )
+
+        bb_cols = [
+            {"key": "batch_no", "header": "Batch", "emph": True, "numeric": True,
+             "render": lambda r: f"#{int(r['batch_no'])}"},
+            {"key": "tarih", "header": "Tarih", "render": lambda r: fmt.date_short(r["tarih"])},
+            {"key": "pres", "header": "Pres",
+             "render": lambda r: (ui.badge(str(r["pres"]), "neutral", small=True)
+                                  if r.get("pres") is not None and not pd.isna(r["pres"])
+                                  else ui.muted_dash())},
+            {"key": "olcum", "header": "Ölçüm", "numeric": True},
+            {"key": "sikim_brix", "header": "Sıkım Brix", "numeric": True, "render": _bmeas("sikim_brix", 2)},
+            {"key": "sikim_ph", "header": "Sıkım pH", "numeric": True, "render": _bmeas("sikim_ph", 2)},
+            {"key": "sikim_asitlik", "header": "Sıkım Asitlik", "numeric": True, "render": _bmeas("sikim_asitlik", 2)},
+            {"key": "posa_brix", "header": "Posa Brix", "numeric": True, "render": _bmeas("posa_brix", 2)},
+            {"key": "posa_nem_pct", "header": "Posa Nem %", "numeric": True, "render": _bmeas("posa_nem_pct", 1)},
+        ]
+        table_card(bb_cols, bb.to_dict("records"),
+                   title="Batch bazında kalite",
+                   subtitle="Her batch'in ölçüm ortalaması · batch sırası = gün içi ilerleme",
+                   glyph="table-2")
 
     # --- reading × batch table -----------------------------------------
     rows = lr.sort_values(["tarih", "kontrol_saati"], ascending=[False, False]).to_dict("records")
@@ -178,6 +212,38 @@ def render(*, theme: str = "dark") -> None:
                            "Eşikler laboratuvar spesifikasyonuyla doğrulandı."))
 
     _editable_lab_table(db.labs())
+
+
+# --------------------------------------------------------------------------- #
+# chart series per granularity
+# --------------------------------------------------------------------------- #
+def _series_for(lr, gran: str, daily):
+    """(frame, x-labels, subtitle) for the trend charts at the chosen granularity.
+
+    * Gün    — one point per day (mean of that day's readings)
+    * Batch  — one point per batch, in batch order (= how quality moved through
+               the day, since batches run sequentially)
+    * Ölçüm  — every reading of a single picked day, x = sample time (gün içi)
+    """
+    if gran == "Gün":
+        labels = [fmt.date_short(d) for d in daily["gun"]] if not daily.empty else []
+        return daily, labels, "gün ortalaması"
+    if gran == "Batch":
+        bb = metrics.lab_by_batch(lr, None)
+        labels = [f"#{int(n)}" for n in bb["batch_no"]] if not bb.empty else []
+        return bb, labels, "batch ortalaması · gün içi sıra"
+    # Ölçüm — one day at a time
+    days = sorted(lr["tarih"].dt.date.unique())
+    if not days:
+        return lr, [], "ölçüm saati"
+    opts = [fmt.date_short(d) for d in days]
+    pick = st.segmented_control(
+        "Gün", opts, default=opts[-1], key="lab_day", label_visibility="collapsed",
+    ) or opts[-1]
+    day = dict(zip(opts, days)).get(pick, days[-1])
+    sub = lr[lr["tarih"].dt.date == day].sort_values("kontrol_saati")
+    labels = [str(s) for s in sub["kontrol_saati"]]
+    return sub, labels, f"{pick} · ölçüm saati"
 
 
 # --------------------------------------------------------------------------- #
