@@ -30,15 +30,7 @@ def render(*, theme: str = "dark") -> None:
         ), title=None)
         return
 
-    breaches = mb[mb["tolerans_disi"]]
-    if not breaches.empty:
-        row = breaches.iloc[-1]
-        ui.render(ui.alert(
-            "Kütle dengesi toleransın dışında",
-            f"{fmt.date_short(row['tarih'])} için fark {fmt.pct_prose(row['fark_pct'])} "
-            f"({fmt.ni(row['fark_kg'])} kg) — tolerans ±%{FARK_TOLERANCE:g}.",
-            tone="bad",
-        ))
+    # Tolerance breaches are surfaced on the Alarmlar page, not here.
 
     # --- hero: latest day's Fark % ---------------------------------------
     last = mb.iloc[-1]

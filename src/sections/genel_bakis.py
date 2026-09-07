@@ -27,7 +27,6 @@ def render(*, theme: str = "dark") -> None:
     presses = metrics.both_presses(b)
     dpp = metrics.daily_press_performance(b)
     series = metrics.daily_headline_series(b)
-    mb = metrics.mass_balance(b, t)
 
     subtitle = (
         f"Bucher Pres · {h.batch_count} batch · "
@@ -121,16 +120,7 @@ def render(*, theme: str = "dark") -> None:
             )
             plot(fig, key="gb_trend_fig")
 
-    # --- over-tolerance alert ---------------------------------------------
-    br = mb[mb["tolerans_disi"]] if not mb.empty else mb
-    if not br.empty:
-        row = br.iloc[-1]
-        ui.render(ui.alert(
-            "Araç ve pres toplamı arasındaki fark toleransın dışında",
-            f"{fmt.date_short(row['tarih'])} için fark {fmt.pct_prose(row['fark_pct'])} "
-            f"({fmt.ni(row['fark_kg'])} kg) — tolerans ±%5.",
-            tone="bad",
-        ))
+    # Mass-balance / tolerance warnings now live on the Alarmlar page.
 
     # --- daily press performance table -----------------------------------
     def _n(v, dgts=1):

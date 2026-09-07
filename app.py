@@ -3,17 +3,19 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src import data_panel, db, metrics, theme
+from src import alarms, data_panel, db, theme
 from src.config import SEED_LAB_CSV, SECTIONS, SEED_XLSX
 from src.icons import icon
 from src.ingest import run as run_ingest
 from src.ingest import seed_lab_if_empty
 from src.sections import (
+    alarmlar,
     arac_lojistigi,
     genel_bakis,
     laboratuvar,
     posa_analizi,
     pres_performansi,
+    serbest_pano,
 )
 
 st.set_page_config(
@@ -29,6 +31,8 @@ _RENDERERS = {
     "posa": posa_analizi.render,
     "arac": arac_lojistigi.render,
     "lab": laboratuvar.render,
+    "pano": serbest_pano.render,
+    "alarm": alarmlar.render,  # reached from the top-bar bell, not the sidebar
 }
 
 
@@ -53,21 +57,11 @@ def _sidebar() -> str:
             unsafe_allow_html=True,
         )
 
-        try:
-            badges = {"posa": len(metrics.breaches())}
-        except Exception:
-            badges = {}
-        try:
-            badges["lab"] = len(metrics.lab_summary().out_of_spec)
-        except Exception:
-            pass
-
         current = st.session_state.get("page", "genel")
         for s in SECTIONS:
-            n = badges.get(s["id"], 0)
-            label = f"{s['label']} :red-badge[{n}]" if n else s["label"]
+            # Warning counts live on the Alarmlar page now — nav stays plain.
             if st.button(
-                label,
+                s["label"],
                 key=f"nav_{s['id']}",
                 width="stretch",
                 type="primary" if s["id"] == current else "secondary",
@@ -100,7 +94,7 @@ def _sidebar() -> str:
 def _topbar() -> None:
     """Sticky bar over the content: global search + theme toggle + refresh."""
     with st.container(key="topbar"):
-        left, mid, right = st.columns([1, 0.34, 0.2], vertical_alignment="center")
+        left, mid, right = st.columns([1, 0.34, 0.3], vertical_alignment="center")
         with left:
             st.text_input(
                 "Ara",
@@ -115,8 +109,24 @@ def _topbar() -> None:
                          help="Excel içe / dışa aktarma ve dosya durumu"):
                 data_panel.open_panel()
         with right:
-            a, b = st.columns(2, gap="small")
+            alarm, a, b = st.columns(3, gap="small")
             night = st.session_state.theme == "dark"
+            try:
+                n_alarm = alarms.active_count()
+            except Exception:
+                n_alarm = 0
+            with alarm:
+                if st.button(
+                    f"{n_alarm}" if n_alarm else "",
+                    key="tb_alarm", width="stretch",
+                    icon=":material/notifications_active:" if n_alarm
+                    else ":material/notifications:",
+                    help=f"Alarmlar · {n_alarm} aktif" if n_alarm else "Alarmlar",
+                    type="primary" if st.session_state.get("page") == "alarm"
+                    else "secondary",
+                ):
+                    st.session_state.page = "alarm"
+                    st.rerun()
             with a:
                 if st.button(
                     "", key="tb_theme", width="stretch",

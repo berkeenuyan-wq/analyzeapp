@@ -77,6 +77,14 @@ CREATE TABLE IF NOT EXISTS meta (
     value TEXT
 );
 
+-- Acknowledged alarms (Alarmlar page). Independent of the source tables, so it
+-- survives a re-ingest: an alarm stays silenced until its content fingerprint
+-- (encoded in alarm_id) changes.
+CREATE TABLE IF NOT EXISTS alarm_ack (
+    alarm_id TEXT PRIMARY KEY,
+    ack_at   TEXT NOT NULL              -- ISO timestamp
+);
+
 CREATE INDEX IF NOT EXISTS ix_batch_tarih ON batch (tarih);
 CREATE INDEX IF NOT EXISTS ix_batch_pres  ON batch (pres);
 CREATE INDEX IF NOT EXISTS ix_truck_tarih ON truck (tarih);
@@ -140,6 +148,54 @@ def get_meta(key: str, default: str | None = None) -> str | None:
         ensure_schema(conn)
         row = conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
         return row[0] if row else default
+
+
+def put_meta(key: str, value: str) -> None:
+    """Standalone upsert into ``meta`` (opens its own connection)."""
+    with connect() as conn:
+        ensure_schema(conn)
+        set_meta(conn, key, value)
+        conn.commit()
+
+
+def del_meta(key: str) -> None:
+    with connect() as conn:
+        ensure_schema(conn)
+        conn.execute("DELETE FROM meta WHERE key = ?", (key,))
+        conn.commit()
+
+
+# --- alarm acknowledgements ---------------------------------------------------- #
+def ack_alarm(alarm_id: str) -> None:
+    with connect() as conn:
+        ensure_schema(conn)
+        conn.execute(
+            "INSERT INTO alarm_ack (alarm_id, ack_at) VALUES (?, ?) "
+            "ON CONFLICT(alarm_id) DO NOTHING",
+            (alarm_id, pd.Timestamp.now().isoformat(timespec="seconds")),
+        )
+        conn.commit()
+
+
+def unack_alarm(alarm_id: str) -> None:
+    with connect() as conn:
+        ensure_schema(conn)
+        conn.execute("DELETE FROM alarm_ack WHERE alarm_id = ?", (alarm_id,))
+        conn.commit()
+
+
+def acked_alarms() -> dict[str, str]:
+    """``alarm_id -> ack timestamp`` for every acknowledged alarm."""
+    with connect() as conn:
+        ensure_schema(conn)
+        return {r[0]: r[1] for r in conn.execute("SELECT alarm_id, ack_at FROM alarm_ack")}
+
+
+def clear_alarm_acks() -> None:
+    with connect() as conn:
+        ensure_schema(conn)
+        conn.execute("DELETE FROM alarm_ack")
+        conn.commit()
 
 
 # --- typed reads ----------------------------------------------------------- #

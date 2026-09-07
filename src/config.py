@@ -41,6 +41,7 @@ SECTIONS = [
     {"id": "posa", "icon": "percent", "label": "Posa Analizi"},
     {"id": "arac", "icon": "truck", "label": "Araç Lojistiği"},
     {"id": "lab", "icon": "flask-conical", "label": "Laboratuvar"},
+    {"id": "pano", "icon": "table-2", "label": "Serbest Pano"},
 ]
 
 # --- press vocabulary --------------------------------------------------------

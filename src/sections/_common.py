@@ -74,6 +74,8 @@ def export_button(key: str) -> None:
 
 
 def kpi_row(cards: list[str]) -> None:
+    if not cards:
+        return
     cols = st.columns(len(cards), gap="small")
     for col, html in zip(cols, cards):
         with col:

@@ -54,28 +54,8 @@ def render(*, theme: str = "dark") -> None:
 
     comp = metrics.lab_completeness(lr, None)
 
-    if not summ.out_of_spec.empty:
-        r = summ.out_of_spec.iloc[-1]
-        bad_bits = [
-            f"{m['label']} {fmt.nf(r[m['key']], m['decimals'])}"
-            for m in LAB_MEASURES
-            if m["key"] in r and m["tone"](r[m["key"]]) == "bad"
-        ]
-        saat = r["kontrol_saati"] if isinstance(r["kontrol_saati"], str) else ""
-        ui.render(ui.alert(
-            f"{len(summ.out_of_spec)} ölçüm eşik dışında",
-            f"Son: {fmt.date_short(r['tarih'])} {saat} · " + " · ".join(bad_bits),
-            tone="bad",
-        ))
-
-    if comp.n_incomplete:
-        ui.render(ui.alert(
-            f"{comp.n_incomplete} ölçümde sıkım değeri eksik",
-            f"Sıkım Brix / pH / Asitlik alanlarının en az biri boş · en sık boş: "
-            f"{comp.worst_field or '—'} · sıkım doldurma oranı "
-            f"%{fmt.nf(comp.core_pct, 0)}",
-            tone="caution",
-        ))
+    # Out-of-spec / incomplete / unmatched warnings are raised on the Alarmlar
+    # page (src/alarms.py) — not pinned to the top here.
 
     # --- hero: mean Posa Brix (low = good extraction) --------------------
     hero_mean = summ.means.get("posa_brix")
@@ -195,39 +175,8 @@ def render(*, theme: str = "dark") -> None:
                    subtitle="Her batch'in ölçüm ortalaması · batch sırası = gün içi ilerleme",
                    glyph="table-2")
 
-    # --- reading × batch table -----------------------------------------
-    rows = lr.sort_values(["tarih", "kontrol_saati"], ascending=[False, False]).to_dict("records")
-
-    def _meas(key: str, decimals: int):
-        m = next(mm for mm in LAB_MEASURES if mm["key"] == key)
-        return lambda r: (
-            ui.badge(fmt.nf(r[key], decimals), m["tone"](r[key]), small=True)
-            if r.get(key) is not None and not pd.isna(r[key]) else ui.muted_dash()
-        )
-
-    columns = [
-        {"key": "tarih", "header": "Tarih", "emph": True,
-         "render": lambda r: fmt.date_short(r["tarih"])},
-        {"key": "kontrol_saati", "header": "Saat",
-         "render": lambda r: (str(r["kontrol_saati"])
-                              if r.get("kontrol_saati") and not pd.isna(r["kontrol_saati"])
-                              else ui.muted_dash())},
-        {"key": "pres", "header": "Pres",
-         "render": lambda r: (ui.badge(str(r["pres"]), "neutral", small=True)
-                              if r.get("pres") is not None and not pd.isna(r["pres"])
-                              else ui.muted_dash())},
-        {"key": "batch_no", "header": "Batch", "numeric": True,
-         "render": lambda r: (f"#{int(r['batch_no'])}" if pd.notna(r["batch_no"])
-                              else '<span class="muted">eşleşmedi</span>')},
-        {"key": "sikim_brix", "header": "Sıkım Brix", "numeric": True, "render": _meas("sikim_brix", 2)},
-        {"key": "sikim_ph", "header": "Sıkım pH", "numeric": True, "render": _meas("sikim_ph", 2)},
-        {"key": "sikim_asitlik", "header": "Sıkım Asitlik", "numeric": True, "render": _meas("sikim_asitlik", 2)},
-        {"key": "posa_brix", "header": "Posa Brix", "numeric": True, "render": _meas("posa_brix", 2)},
-        {"key": "posa_nem_pct", "header": "Posa Nem %", "numeric": True, "render": _meas("posa_nem_pct", 1)},
-    ]
-    table_card(columns, rows, title="Kalite ölçümleri × batch",
-               subtitle="Her ölçüm gün + pres + saat penceresiyle batch'e bağlanır",
-               glyph="flask-conical")
+    # Raw readings are shown (and edited) in the "Kalite Ölçüm Tablosu" grid
+    # below — no separate read-only reading × batch table.
     ui.render(ui.foot_note(_UNCONFIRMED_NOTE if not LAB_SPECS_CONFIRMED else
                            "Eşikler laboratuvar spesifikasyonuyla doğrulandı."))
 
