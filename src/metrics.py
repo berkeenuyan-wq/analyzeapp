@@ -665,6 +665,104 @@ def end_criteria_pareto(batches: pd.DataFrame | None = None) -> pd.DataFrame:
     return vc
 
 
+# =========================================================================== #
+# Laboratuvar — Pres Kalite Kontrolleri (juice / pomace quality)
+#
+# The quality sheet is time-sampled (a reading every few hours per press), not
+# batch-indexed. Each reading is tied to a batch at query time: same day, same
+# press, and the reading's Kontrol Saati inside the batch's başlangıç–bitiş
+# window. 0, 1 or several readings may land on one batch; a reading that fits no
+# window keeps batch_no = <NA> and is surfaced as "eşleşmedi".
+# =========================================================================== #
+def lab_readings(
+    labs: pd.DataFrame | None = None, batches: pd.DataFrame | None = None
+) -> pd.DataFrame:
+    lab = db.labs() if labs is None else labs
+    b = db.batches() if batches is None else batches
+    if lab.empty:
+        return lab.assign(
+            pres=pd.Series(dtype=object),
+            batch_no=pd.array([], dtype="Int64"),
+        )
+
+    out = lab.copy()
+    out["pres"] = out["pres_no"].map(
+        lambda n: f"Pres {int(n)}" if pd.notna(n) else None
+    )
+    out["batch_no"] = pd.array([pd.NA] * len(out), dtype="Int64")
+
+    if not b.empty:
+        windows: dict = {}
+        for r in b.itertuples():
+            s, e = _secs(r.baslangic), _secs(r.bitis)
+            if s is None or e is None or pd.isna(r.tarih):
+                continue
+            windows.setdefault((r.tarih.date(), r.pres), []).append(
+                (s, e, int(r.batch_no))
+            )
+        for i in out.index:
+            t = out.at[i, "tarih"]
+            key = (t.date() if pd.notna(t) else None, out.at[i, "pres"])
+            secs = _secs(out.at[i, "kontrol_saati"])
+            if key[0] is None or secs is None or key not in windows:
+                continue
+            hits = [(e - s, bn) for s, e, bn in windows[key] if s <= secs <= e]
+            if hits:
+                out.at[i, "batch_no"] = min(hits)[1]  # tightest window wins
+
+    return out.reset_index(drop=True)
+
+
+@dataclass
+class LabSummary:
+    n_readings: int
+    n_matched: int
+    n_days: int
+    means: dict          # measure key -> mean (or None)
+    out_of_spec: pd.DataFrame   # readings with at least one 'bad' measure
+
+
+def lab_summary(
+    labs: pd.DataFrame | None = None, batches: pd.DataFrame | None = None
+) -> LabSummary:
+    from .config import LAB_MEASURES
+
+    lr = lab_readings(labs, batches)
+    if lr.empty:
+        return LabSummary(0, 0, 0, {m["key"]: None for m in LAB_MEASURES}, pd.DataFrame())
+
+    means = {m["key"]: _mean(lr[m["key"]]) for m in LAB_MEASURES if m["key"] in lr.columns}
+
+    def _bad(row) -> bool:
+        return any(
+            m["tone"](row[m["key"]]) == "bad"
+            for m in LAB_MEASURES if m["key"] in lr.columns
+        )
+
+    oos = lr[lr.apply(_bad, axis=1)] if len(lr) else lr
+    return LabSummary(
+        n_readings=len(lr),
+        n_matched=int(lr["batch_no"].notna().sum()),
+        n_days=lr["tarih"].dt.date.nunique(),
+        means=means,
+        out_of_spec=oos.reset_index(drop=True),
+    )
+
+
+def lab_daily(
+    labs: pd.DataFrame | None = None, batches: pd.DataFrame | None = None
+) -> pd.DataFrame:
+    """One row per day with the mean of every lab measure — for trend charts."""
+    from .config import LAB_MEASURES
+
+    lr = lab_readings(labs, batches)
+    if lr.empty:
+        return pd.DataFrame()
+    keys = [m["key"] for m in LAB_MEASURES if m["key"] in lr.columns]
+    g = lr.groupby(lr["tarih"].dt.date)[keys].mean().reset_index(names="gun")
+    return g.sort_values("gun").reset_index(drop=True)
+
+
 def last_delta(series: pd.Series) -> float | None:
     """Absolute change between the last two points of a series (skipping NaN)."""
     s = series.dropna()

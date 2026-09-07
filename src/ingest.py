@@ -29,6 +29,27 @@ from .config import SEED_XLSX
 
 SHEET_BATCH = "Press Batch Kayıtları"
 SHEET_TRUCK = "Araç Takip"
+# Lab quality sheet ("PRES KALİTE KONTROLLERİ"). Optional — older workbooks and
+# app-exported ones may not carry it, so its absence is never an error. The tab
+# in the plant workbook is named "F.019_PRES&PASA ..."; matched loosely below.
+SHEET_LAB_MARKERS = ("pres kali", "kalite kontrol", "f.019")
+
+# Lab sheet columns, in the order they appear left-to-right on the sheet.
+LAB_COLUMNS = [
+    "urun", "urun_stok_kodu", "lot_no", "tarih", "kontrol_saati",
+    "urun_alinan_tank_no", "pres_no", "sikim_brix", "sikim_ph", "sikim_asitlik",
+    "posa_kontrol_saati", "posa_brix", "posa_nem_pct", "pulp_pct", "giris_pulp",
+]
+LAB_NUMERIC = [
+    "sikim_brix", "sikim_ph", "sikim_asitlik", "posa_brix", "posa_nem_pct",
+    "pulp_pct", "giris_pulp",
+]
+# Persisted lab columns (drops the throw-away urun_stok_kodu; adds notlar).
+LAB_DB_COLUMNS = [
+    "tarih", "pres_no", "kontrol_saati", "urun", "lot_no", "urun_alinan_tank_no",
+    "sikim_brix", "sikim_ph", "sikim_asitlik", "posa_kontrol_saati", "posa_brix",
+    "posa_nem_pct", "pulp_pct", "giris_pulp", "notlar",
+]
 
 # Workbook column order for the batch sheet (row 2 headers), source columns only.
 BATCH_COLUMNS = [
@@ -61,6 +82,7 @@ class ImportReport:
     source: str = ""
     batch_rows: int = 0
     truck_rows: int = 0
+    lab_rows: int = 0
     fixes: list[str] = field(default_factory=list)      # silent corrections applied
     warnings: list[str] = field(default_factory=list)   # kept, but the operator should look
     rejected: list[str] = field(default_factory=list)   # dropped rows, with the reason
@@ -75,8 +97,9 @@ class ImportReport:
         self.rejected.append(msg)
 
     def summary_tr(self) -> str:
+        lab = f" · {self.lab_rows} lab kaydı" if self.lab_rows else ""
         return (
-            f"{self.batch_rows} batch · {self.truck_rows} araç kaydı · "
+            f"{self.batch_rows} batch · {self.truck_rows} araç kaydı{lab} · "
             f"{len(self.fixes)} düzeltme · {len(self.warnings)} uyarı · "
             f"{len(self.rejected)} reddedilen satır"
         )
@@ -87,6 +110,7 @@ class CleanResult:
     batches: pd.DataFrame
     trucks: pd.DataFrame
     report: ImportReport
+    labs: pd.DataFrame = field(default_factory=pd.DataFrame)
 
 
 # --------------------------------------------------------------------------- #
@@ -169,9 +193,33 @@ def read_and_clean(path: str | Path) -> CleanResult:
 
     batches = _clean_batches(xls[SHEET_BATCH], report)
     trucks = _clean_trucks(xls[SHEET_TRUCK], report)
+    labs = _read_lab_sheet(path, report)
     report.batch_rows = len(batches)
     report.truck_rows = len(trucks)
-    return CleanResult(batches=batches, trucks=trucks, report=report)
+    report.lab_rows = len(labs)
+    return CleanResult(batches=batches, trucks=trucks, report=report, labs=labs)
+
+
+def _lab_sheet_name(path: Path) -> str | None:
+    """Locate the quality sheet by a loose name match; None if the book lacks one."""
+    try:
+        names = pd.ExcelFile(path).sheet_names
+    except Exception:  # noqa: BLE001 — treated as "no lab sheet"
+        return None
+    for name in names:
+        low = str(name).strip().lower()
+        if any(m in low for m in SHEET_LAB_MARKERS):
+            return name
+    return None
+
+
+def _read_lab_sheet(path: Path, report: ImportReport) -> pd.DataFrame:
+    """Clean the optional 'PRES KALİTE KONTROLLERİ' sheet. Missing → empty frame."""
+    name = _lab_sheet_name(path)
+    if name is None:
+        return pd.DataFrame(columns=LAB_DB_COLUMNS)
+    raw = pd.read_excel(path, sheet_name=name, header=None)
+    return _clean_lab(raw, report)
 
 
 def _find_data_start(raw: pd.DataFrame, markers: tuple[str, ...], default: int) -> int:
@@ -339,6 +387,131 @@ def _clean_str(value) -> str | None:
 
 
 # --------------------------------------------------------------------------- #
+# lab quality sheet ("PRES KALİTE KONTROLLERİ")
+# --------------------------------------------------------------------------- #
+def _int_or_none(value) -> int | None:
+    n = _num(value)
+    return int(round(n)) if n is not None else None
+
+
+def _clean_lab(raw: pd.DataFrame, report: ImportReport) -> pd.DataFrame:
+    """Row-per-sample quality readings. The sheet has a deep multi-row header
+    band and a 'Lot No' column that often just repeats the date; the header row
+    is located by its labels, not a fixed offset."""
+    start = _find_data_start(
+        raw, ("ürün adı", "urun adi", "lot no", "üretim tarihi", "sıkım brix", "pres no"),
+        default=7,
+    )
+    body = raw.iloc[start:, : len(LAB_COLUMNS)].copy()
+    body.columns = LAB_COLUMNS
+    rows: list[dict] = []
+
+    for _, r in body.iterrows():
+        tarih = _iso_date(r["tarih"])
+        brix = _num(r["sikim_brix"])
+        # a row is real if it has a date and at least one measurement
+        if tarih is None or (brix is None and _num(r["posa_brix"]) is None
+                             and _num(r["sikim_ph"]) is None):
+            continue
+
+        rec: dict = {
+            "tarih": tarih,
+            "pres_no": _int_or_none(r["pres_no"]),
+            "kontrol_saati": _hhmmss(r["kontrol_saati"], seconds=False),
+            "urun": _clean_str(r["urun"]) or "ELMA",
+            "lot_no": _clean_str(r["lot_no"]) if not _iso_date(r["lot_no"]) else None,
+            "urun_alinan_tank_no": _int_or_none(r["urun_alinan_tank_no"]),
+            "posa_kontrol_saati": _hhmmss(r["posa_kontrol_saati"], seconds=False),
+            "notlar": None,
+        }
+        for col in ("sikim_brix", "sikim_ph", "sikim_asitlik", "posa_brix",
+                    "posa_nem_pct", "pulp_pct", "giris_pulp"):
+            rec[col] = _num(r[col])
+
+        if rec["pres_no"] not in (1, 2, None):
+            report.add_warning(
+                f"Lab {tarih} {rec['kontrol_saati']}: PRES NO {rec['pres_no']} "
+                "beklenen 1/2 değil — olduğu gibi tutuldu."
+            )
+        if rec["posa_nem_pct"] is not None and rec["posa_nem_pct"] > 100:
+            report.add_warning(
+                f"Lab {tarih} {rec['kontrol_saati']}: Posa Nem %{rec['posa_nem_pct']:g} "
+                "— %100 üstü, kontrol edin."
+            )
+        rows.append(rec)
+
+    df = pd.DataFrame(rows, columns=LAB_DB_COLUMNS)
+    if not df.empty:
+        df = df.sort_values(["tarih", "kontrol_saati", "pres_no"]).reset_index(drop=True)
+    return df
+
+
+def read_lab_csv(path: str | Path) -> pd.DataFrame:
+    """Cleaned lab frame from the seed CSV (data/seed/pres_kalite_kontrolleri.csv)."""
+    raw = pd.read_csv(path, dtype=str, keep_default_na=False)
+    rows: list[dict] = []
+    for _, r in raw.iterrows():
+        d = {k: (r.get(k) or "").strip() for k in raw.columns}
+        tarih = _iso_date(d.get("tarih"))
+        if tarih is None:
+            continue
+        rec = {
+            "tarih": tarih,
+            "pres_no": _int_or_none(d.get("pres_no")),
+            "kontrol_saati": _hhmmss(d.get("kontrol_saati"), seconds=False),
+            "urun": d.get("urun") or "ELMA",
+            "lot_no": d.get("lot_no") or None,
+            "urun_alinan_tank_no": _int_or_none(d.get("urun_alinan_tank_no")),
+            "posa_kontrol_saati": _hhmmss(d.get("posa_kontrol_saati"), seconds=False),
+            "notlar": d.get("notlar") or None,
+        }
+        for col in ("sikim_brix", "sikim_ph", "sikim_asitlik", "posa_brix",
+                    "posa_nem_pct", "pulp_pct", "giris_pulp"):
+            rec[col] = _num(d.get(col))
+        rows.append(rec)
+    return pd.DataFrame(rows, columns=LAB_DB_COLUMNS)
+
+
+def load_lab_frame(
+    labs: pd.DataFrame, *, mode: str = "upsert",
+    conn: sqlite3.Connection | None = None,
+) -> int:
+    """Write a cleaned lab frame. ``mode='replace'`` clears the table first;
+    ``'upsert'`` merges by (tarih, pres_no, kontrol_saati)."""
+    if labs is None or labs.empty:
+        return 0
+    own = conn is None
+    conn = conn or db.connect()
+    try:
+        db.ensure_schema(conn)
+        cur = conn.cursor()
+        if mode == "replace":
+            cur.execute("DELETE FROM lab")
+        cols = [c for c in LAB_DB_COLUMNS if c in labs.columns]
+        cur.executemany(
+            f"INSERT INTO lab ({','.join(cols)}) VALUES ({','.join('?' * len(cols))}) "
+            f"ON CONFLICT(tarih, pres_no, kontrol_saati) DO UPDATE SET "
+            + ", ".join(f"{c}=excluded.{c}" for c in cols
+                        if c not in ("tarih", "pres_no", "kontrol_saati")),
+            [tuple(_py(v) for v in row)
+             for row in labs[cols].itertuples(index=False, name=None)],
+        )
+        conn.commit()
+        return cur.execute("SELECT COUNT(*) FROM lab").fetchone()[0]
+    finally:
+        if own:
+            conn.close()
+
+
+def seed_lab_if_empty(csv_path: str | Path) -> int:
+    """First-run helper: load the seed CSV only when the lab table is empty."""
+    csv_path = Path(csv_path)
+    if not csv_path.exists() or db.lab_count() > 0:
+        return 0
+    return load_lab_frame(read_lab_csv(csv_path), mode="replace")
+
+
+# --------------------------------------------------------------------------- #
 # load
 # --------------------------------------------------------------------------- #
 def load_frames(
@@ -348,6 +521,7 @@ def load_frames(
     mode: str = "replace",
     source: str = "",
     conn: sqlite3.Connection | None = None,
+    labs: pd.DataFrame | None = None,
 ) -> dict[str, int]:
     """Write cleaned frames to SQLite.
 
@@ -379,6 +553,19 @@ def load_frames(
             [tuple(_py(v) for v in row) for row in trucks.itertuples(index=False, name=None)],
         )
 
+        if labs is not None and not labs.empty:
+            if mode == "replace":
+                cur.execute("DELETE FROM lab")
+            l_cols = [c for c in LAB_DB_COLUMNS if c in labs.columns]
+            cur.executemany(
+                f"INSERT INTO lab ({','.join(l_cols)}) VALUES ({','.join('?' * len(l_cols))}) "
+                f"ON CONFLICT(tarih, pres_no, kontrol_saati) DO UPDATE SET "
+                + ", ".join(f"{c}=excluded.{c}" for c in l_cols
+                            if c not in ("tarih", "pres_no", "kontrol_saati")),
+                [tuple(_py(v) for v in row)
+                 for row in labs[l_cols].itertuples(index=False, name=None)],
+            )
+
         now = dt.datetime.now().replace(microsecond=0).isoformat()
         db.set_meta(conn, "last_import_at", now, cur=cur)
         db.set_meta(conn, "source_filename", source or "Production_Stats.xlsx", cur=cur)
@@ -388,6 +575,7 @@ def load_frames(
         return {
             "batch": cur.execute("SELECT COUNT(*) FROM batch").fetchone()[0],
             "truck": cur.execute("SELECT COUNT(*) FROM truck").fetchone()[0],
+            "lab": cur.execute("SELECT COUNT(*) FROM lab").fetchone()[0],
         }
     finally:
         if own:
@@ -408,10 +596,12 @@ def _py(v):
 def run(path: str | Path = SEED_XLSX, *, mode: str = "replace") -> ImportReport:
     result = read_and_clean(path)
     counts = load_frames(
-        result.batches, result.trucks, mode=mode, source=Path(path).name
+        result.batches, result.trucks, mode=mode, source=Path(path).name,
+        labs=result.labs,
     )
     result.report.batch_rows = counts["batch"]
     result.report.truck_rows = counts["truck"]
+    result.report.lab_rows = counts["lab"]
     return result.report
 
 

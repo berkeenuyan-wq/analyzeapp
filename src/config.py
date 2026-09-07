@@ -29,6 +29,7 @@ ROOT = BUNDLE_ROOT
 DATA_DIR = BUNDLE_ROOT / "data"
 DB_PATH = STATE_DIR / "uretim.db"
 SEED_XLSX = DATA_DIR / "seed" / "Production_Stats.xlsx"
+SEED_LAB_CSV = DATA_DIR / "seed" / "pres_kalite_kontrolleri.csv"
 ASSETS_DIR = BUNDLE_ROOT / "assets"
 TOKENS_DIR = ASSETS_DIR / "tokens"
 EXPORT_DIR = STATE_DIR / "exports"
@@ -39,6 +40,7 @@ SECTIONS = [
     {"id": "pres", "icon": "gauge", "label": "Pres Performansı"},
     {"id": "posa", "icon": "percent", "label": "Posa Analizi"},
     {"id": "arac", "icon": "truck", "label": "Araç Lojistiği"},
+    {"id": "lab", "icon": "flask-conical", "label": "Laboratuvar"},
 ]
 
 # --- press vocabulary --------------------------------------------------------
@@ -85,3 +87,67 @@ def tone_bekleme(v: float | None) -> str:
     if v is None:
         return "neutral"
     return "bad" if v > 60 else "caution" if v > 15 else "good"
+
+
+# --- Laboratuvar (Pres Kalite Kontrolleri) threshold rules ------------------
+# UNCONFIRMED — provisional bands, not the plant lab's own spec sheet. The
+# Laboratuvar section carries a "eşikler doğrulanmadı" footnote until these are
+# checked against the lab. Sıkım Asitlik has no band at all: its unit (g/L vs %)
+# is unknown, so it renders neutral.
+LAB_SPECS_CONFIRMED = False
+
+
+def tone_posa_brix(v: float | None) -> str:
+    """Residual sugar in the pomace — lower means more juice extracted."""
+    if v is None:
+        return "neutral"
+    return "good" if v <= 2.0 else "caution" if v <= 4.0 else "bad"
+
+
+def tone_posa_nem(v: float | None) -> str:
+    """Pomace moisture % — a drier cake means a better press."""
+    if v is None:
+        return "neutral"
+    return "good" if v <= 65 else "caution" if v <= 70 else "bad"
+
+
+def tone_sikim_ph(v: float | None) -> str:
+    if v is None:
+        return "neutral"
+    if v < 3.2 or v > 4.3:
+        return "bad"
+    return "good" if v <= 4.0 else "caution"
+
+
+def tone_sikim_brix(v: float | None) -> str:
+    if v is None:
+        return "neutral"
+    if v < 8.0 or v > 16.0:
+        return "bad"
+    return "good" if 10.0 <= v <= 14.0 else "caution"
+
+
+def tone_sikim_asitlik(v: float | None) -> str:
+    return "neutral"  # unit unconfirmed — no band
+
+
+def tone_pulp(v: float | None) -> str:
+    if v is None:
+        return "neutral"
+    return "good" if 0.2 <= v <= 0.5 else "caution"
+
+
+# UI registry: which lab columns get a KPI tile / threshold tone, and how a
+# rising value reads (good_when drives the DeltaChip colour, per the design kit).
+LAB_MEASURES = [
+    {"key": "sikim_brix", "label": "Sıkım Brix", "unit": "°Bx", "glyph": "droplet",
+     "tone": tone_sikim_brix, "good_when": "none", "decimals": 2},
+    {"key": "sikim_ph", "label": "Sıkım pH", "unit": "", "glyph": "activity",
+     "tone": tone_sikim_ph, "good_when": "none", "decimals": 2},
+    {"key": "sikim_asitlik", "label": "Sıkım Asitlik", "unit": "", "glyph": "activity",
+     "tone": tone_sikim_asitlik, "good_when": "none", "decimals": 2},
+    {"key": "posa_brix", "label": "Posa Brix", "unit": "°Bx", "glyph": "percent",
+     "tone": tone_posa_brix, "good_when": "down", "decimals": 2},
+    {"key": "posa_nem_pct", "label": "Posa Nem", "unit": "%", "glyph": "droplet",
+     "tone": tone_posa_nem, "good_when": "down", "decimals": 1},
+]

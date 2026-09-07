@@ -26,7 +26,8 @@ def preview(path_or_buffer) -> CleanResult:
 def commit(result: CleanResult, *, mode: str = "upsert") -> dict[str, int]:
     """Persist a previously previewed :class:`CleanResult`."""
     return load_frames(
-        result.batches, result.trucks, mode=mode, source=result.report.source
+        result.batches, result.trucks, mode=mode, source=result.report.source,
+        labs=getattr(result, "labs", None),
     )
 
 
@@ -48,6 +49,14 @@ _TRUCK_HEADERS = {
     "tarih": "Tarih", "arac_no": "Araç No", "urun": "Ürün", "miktar_kg": "Miktar (kg)",
     "baslangic": "Başlangıç", "bitis": "Bitiş", "sure_dk": "Süre (dk)",
     "hiz_kg_dk": "Hız (kg/dk)", "bekleme_dk": "Bekleme (dk)",
+}
+_LAB_HEADERS = {
+    "urun": "Ürün Adı", "lot_no": "Lot No", "tarih": "Üretim Tarihi",
+    "kontrol_saati": "Kontrol Saati", "urun_alinan_tank_no": "Ürün Alınan İşleme Tankı No",
+    "pres_no": "PRES NO", "sikim_brix": "Sıkım Brix", "sikim_ph": "Sıkım pH",
+    "sikim_asitlik": "Sıkım Asitlik", "posa_kontrol_saati": "POSA Kontrol Saati",
+    "posa_brix": "Posa Brix", "posa_nem_pct": "Posa Nem (m/w %)",
+    "pulp_pct": "Pulp (% w/w)", "giris_pulp": "Giriş Pulp", "notlar": "Notlar",
 }
 
 
@@ -71,6 +80,30 @@ def build_workbook() -> bytes:
     if not truck_out.empty:
         truck_out["tarih"] = truck_out["tarih"].dt.date
         truck_out = truck_out[list(_TRUCK_HEADERS)].rename(columns=_TRUCK_HEADERS)
+
+    lab = db.labs()
+    lab_out = lab.drop(columns=[c for c in ("id",) if c in lab.columns]).copy()
+    if not lab_out.empty:
+        lab_out["tarih"] = lab_out["tarih"].dt.date
+        for col in _LAB_HEADERS:
+            if col not in lab_out.columns:
+                lab_out[col] = None
+        lab_out = lab_out[list(_LAB_HEADERS)].rename(columns=_LAB_HEADERS)
+
+    lr = metrics.lab_readings(lab, b)
+    lab_batch_out = pd.DataFrame()
+    if not lr.empty:
+        lab_batch_out = lr[[
+            "tarih", "kontrol_saati", "pres", "batch_no", "sikim_brix", "sikim_ph",
+            "sikim_asitlik", "posa_brix", "posa_nem_pct",
+        ]].copy()
+        lab_batch_out["tarih"] = lab_batch_out["tarih"].dt.date
+        lab_batch_out = lab_batch_out.rename(columns={
+            "tarih": "Üretim Tarihi", "kontrol_saati": "Kontrol Saati", "pres": "Pres",
+            "batch_no": "Batch No", "sikim_brix": "Sıkım Brix", "sikim_ph": "Sıkım pH",
+            "sikim_asitlik": "Sıkım Asitlik", "posa_brix": "Posa Brix",
+            "posa_nem_pct": "Posa Nem (%)",
+        })
 
     # --- derived sheets -------------------------------------------------- #
     mb = metrics.mass_balance(b, t)
@@ -130,6 +163,10 @@ def build_workbook() -> bytes:
         if not dpp.empty:
             dpp.to_excel(xw, sheet_name="Günlük Press Performansı", index=False)
         stats_out.to_excel(xw, sheet_name="Araç İstatistikleri", index=False)
+        if not lab_out.empty:
+            lab_out.to_excel(xw, sheet_name="PRES KALİTE KONTROLLERİ", index=False)
+        if not lab_batch_out.empty:
+            lab_batch_out.to_excel(xw, sheet_name="Kalite x Batch", index=False)
         _autofit(xw)
     return buf.getvalue()
 

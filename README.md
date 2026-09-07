@@ -22,11 +22,22 @@ Production_Stats.xlsx ──▶ src/ingest.py (clean) ──▶ data/uretim.db �
                           Excel'den İçe Aktar ────────────┘         Excel'e Aktar ◀───────────┘
 ```
 
-* **SQLite is the live database.** Only the two *source* tables are stored —
-  `batch` (Press Batch Kayıtları) and `truck` (Araç Takip). Every derived figure
-  (Press Analiz, Ön Hatlar Analiz, İstatistikler) is recomputed at query time, so
-  there is one source of truth. The workbook's own pre-computed cells are treated
-  as stale output and never read.
+* **SQLite is the live database.** Only the *source* tables are stored —
+  `batch` (Press Batch Kayıtları), `truck` (Araç Takip) and `lab`
+  (PRES KALİTE KONTROLLERİ). Every derived figure (Press Analiz, Ön Hatlar
+  Analiz, İstatistikler, the Laboratuvar roll-ups) is recomputed at query time,
+  so there is one source of truth. The workbook's own pre-computed cells are
+  treated as stale output and never read.
+
+* **Laboratuvar** (`lab` table). Row-per-sample juice & pomace quality — Sıkım
+  Brix / pH / Asitlik, Posa Brix / Nem %. The sheet is time-sampled (a reading
+  every few hours per press), not batch-indexed, so each reading is tied to a
+  batch **at query time** in `metrics.lab_readings`: same day, same press, and
+  the reading's `Kontrol Saati` inside that batch's `başlangıç–bitiş` window
+  (tightest window wins). A reading that fits no window shows as *eşleşmedi*.
+  First launch seeds `lab` from `data/seed/pres_kalite_kontrolleri.csv`; the
+  Excel round-trip reads/writes the `PRES KALİTE KONTROLLERİ` sheet when present
+  (its absence is never an error).
 ### Veri Girişi
 
 * **Add** — pick "Yeni batch" / "Yeni araç kaydı" in the record selector, fill the
@@ -73,7 +84,9 @@ src/
   ui.py           HTML component helpers (hero, KPI, badge, delta chip, table, alert, meter)
   charts.py       Plotly builders themed from the tokens
   excel_io.py     import preview/commit + workbook export
-  sections/       genel_bakis · pres_performansi · posa_analizi · arac_lojistigi · veri_girisi
+  sections/       genel_bakis · pres_performansi · posa_analizi · arac_lojistigi · laboratuvar
+data/
+  seed/pres_kalite_kontrolleri.csv   first-run seed for the lab table
 assets/
   tokens/*.css    copied from the design system
   components.css  component + Streamlit-chrome styling
@@ -93,6 +106,20 @@ assets/
 `DeltaChip` colour comes from the measure's own semantics (`good_when`), not the
 arrow direction — a falling Fark % renders green.
 
+### Laboratuvar thresholds — **provisional, not yet confirmed with the lab**
+
+| Measure | Green | Amber | Red |
+| --- | --- | --- | --- |
+| Posa Brix °Bx | ≤ 2 | 2–4 | > 4 |
+| Posa Nem % | ≤ 65 | 65–70 | > 70 |
+| Sıkım pH | 3,3–4,0 | 4,0–4,3 | > 4,3 or < 3,2 |
+| Sıkım Brix °Bx | 10–14 | 8–10 / 14–16 | < 8 or > 16 |
+| Sıkım Asitlik | — | — | — (unit unconfirmed → always neutral) |
+
+Set `config.LAB_SPECS_CONFIRMED = True` and adjust `tone_*` once the plant lab
+signs off. The Laboratuvar page carries a footnote saying the bands are
+unconfirmed until then.
+
 ## Known deviations from the source workbook
 
 * `Press Analiz` sheet cells for **Ort. Toplam Verim** (91.24) and **Ort. Batch
@@ -105,3 +132,9 @@ arrow direction — a falling Fark % renders green.
   hourly posa rates (~2,3 t/sa), matching the design kit; the workbook cell shows
   the mean (~1,2). Uses the "Toplam" reading.
 * CIP sheets (`CIP EKİPMAN LİSTESİ`, `CIP Geçmiş`, `Reçeteler`) are out of scope.
+* **Laboratuvar seed data** was transcribed from phone photos of the
+  `PRES KALİTE KONTROLLERİ` sheet (31 Ağu, 3–4 Eyl 2026) — verify against the
+  real workbook when it lands. The `Kontrol Saati` values that place each
+  reading in a batch window are especially worth a second look.
+* **Sıkım Asitlik** unit (g/L malic vs %) is unconfirmed, so it has no
+  threshold band and never colours.

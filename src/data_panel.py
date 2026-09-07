@@ -20,6 +20,7 @@ def _file_status() -> None:
         ui.figrow([
             ("Batch kaydı", str(cov.batch_count)),
             ("Araç kaydı", str(cov.truck_count)),
+            ("Lab kaydı", str(db.lab_count())),
             ("Gün", str(len(set(cov.batch_days) | set(cov.truck_days)))),
         ])
         + f'<div class="up-divrow"><span>Son içe aktarma</span>'
@@ -53,9 +54,10 @@ def _excel_tools() -> None:
             return
 
         rep = result.report
+        lab_bit = f"{rep.lab_rows} lab · " if rep.lab_rows else ""
         ui.render(ui.alert(
             "Önizleme — henüz yazılmadı",
-            f"{rep.batch_rows} batch · {rep.truck_rows} araç · "
+            f"{rep.batch_rows} batch · {rep.truck_rows} araç · {lab_bit}"
             f"{len(rep.fixes)} düzeltme · {len(rep.warnings)} uyarı · "
             f"{len(rep.rejected)} reddedilen satır.",
             tone="info",
@@ -83,7 +85,10 @@ def _excel_tools() -> None:
         if st.button("İçe aktarmayı onayla", type="primary", key="vg_commit"):
             counts = excel_io.commit(result, mode=mode)
             st.cache_data.clear()
-            st.toast(f"İçe aktarıldı — {counts['batch']} batch, {counts['truck']} araç.")
+            lab_bit = f", {counts['lab']} lab" if counts.get("lab") else ""
+            st.toast(
+                f"İçe aktarıldı — {counts['batch']} batch, {counts['truck']} araç{lab_bit}."
+            )
             st.rerun()
 
     ui.render(ui.card_close())

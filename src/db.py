@@ -52,6 +52,26 @@ CREATE TABLE IF NOT EXISTS truck (
     UNIQUE (tarih, arac_no)
 );
 
+CREATE TABLE IF NOT EXISTS lab (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    tarih                 TEXT NOT NULL,     -- ISO date 'YYYY-MM-DD' (Üretim Tarihi)
+    pres_no               INTEGER,           -- 1 / 2 (PRES NO on the sheet); NULL if not noted
+    kontrol_saati         TEXT,              -- 'HH:MM' juice sample time
+    urun                  TEXT,              -- Ürün Adı (ELMA)
+    lot_no                TEXT,
+    urun_alinan_tank_no   INTEGER,           -- Ürün Alınan İşleme Tankı No
+    sikim_brix            REAL,              -- Sıkım Brix (°Bx)
+    sikim_ph              REAL,              -- Sıkım pH
+    sikim_asitlik         REAL,              -- Sıkım Asitlik (unit unconfirmed)
+    posa_kontrol_saati    TEXT,              -- 'HH:MM' pomace sample time
+    posa_brix             REAL,              -- Posa Brix (°Bx) — low = good extraction
+    posa_nem_pct          REAL,              -- Posa Nem (m/w %)
+    pulp_pct              REAL,              -- Pulp (% w/w)
+    giris_pulp            REAL,              -- Giriş Pulp (mL/15 mL veya % v/v)
+    notlar                TEXT,
+    UNIQUE (tarih, pres_no, kontrol_saati)
+);
+
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT
@@ -60,6 +80,7 @@ CREATE TABLE IF NOT EXISTS meta (
 CREATE INDEX IF NOT EXISTS ix_batch_tarih ON batch (tarih);
 CREATE INDEX IF NOT EXISTS ix_batch_pres  ON batch (pres);
 CREATE INDEX IF NOT EXISTS ix_truck_tarih ON truck (tarih);
+CREATE INDEX IF NOT EXISTS ix_lab_tarih   ON lab (tarih);
 """
 
 
@@ -183,6 +204,66 @@ def compute_bekleme(df: pd.DataFrame) -> pd.DataFrame:
                 prev_end = end if prev_end is None else max(prev_end, end)
     df["bekleme_dk"] = pd.to_numeric(df["bekleme_dk"], errors="coerce")
     return df
+
+
+def labs() -> pd.DataFrame:
+    """All lab (Pres Kalite Kontrolleri) rows, ordered by date then sample time."""
+    with connect() as conn:
+        ensure_schema(conn)
+        df = pd.read_sql_query("SELECT * FROM lab", conn)
+    if not df.empty:
+        df["tarih"] = pd.to_datetime(df["tarih"], errors="coerce")
+        df = df.sort_values(
+            ["tarih", "kontrol_saati", "pres_no", "id"]
+        ).reset_index(drop=True)
+    return df
+
+
+def lab_count() -> int:
+    with connect() as conn:
+        ensure_schema(conn)
+        return conn.execute("SELECT COUNT(*) FROM lab").fetchone()[0]
+
+
+def insert_lab(rec: dict) -> None:
+    """Upsert one lab row keyed by (tarih, pres_no, kontrol_saati)."""
+    cols = [c for c in rec if c != "id"]
+    with connect() as conn:
+        ensure_schema(conn)
+        conn.execute(
+            f"INSERT INTO lab ({','.join(cols)}) VALUES ({','.join('?' * len(cols))}) "
+            f"ON CONFLICT(tarih, pres_no, kontrol_saati) DO UPDATE SET "
+            + ", ".join(
+                f"{c}=excluded.{c}"
+                for c in cols
+                if c not in ("tarih", "pres_no", "kontrol_saati")
+            ),
+            [rec[c] for c in cols],
+        )
+        conn.commit()
+
+
+def get_lab(lab_id: int) -> dict | None:
+    with connect() as conn:
+        ensure_schema(conn)
+        row = conn.execute("SELECT * FROM lab WHERE id = ?", (lab_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def delete_lab(lab_id: int) -> None:
+    with connect() as conn:
+        ensure_schema(conn)
+        conn.execute("DELETE FROM lab WHERE id = ?", (lab_id,))
+        conn.commit()
+
+
+def lab_keys() -> list[int]:
+    with connect() as conn:
+        ensure_schema(conn)
+        return [
+            r[0]
+            for r in conn.execute("SELECT id FROM lab ORDER BY id DESC").fetchall()
+        ]
 
 
 def insert_batch(rec: dict) -> None:

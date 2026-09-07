@@ -4,12 +4,14 @@ from __future__ import annotations
 import streamlit as st
 
 from src import data_panel, db, metrics, theme
-from src.config import SECTIONS, SEED_XLSX
+from src.config import SEED_LAB_CSV, SECTIONS, SEED_XLSX
 from src.icons import icon
 from src.ingest import run as run_ingest
+from src.ingest import seed_lab_if_empty
 from src.sections import (
     arac_lojistigi,
     genel_bakis,
+    laboratuvar,
     posa_analizi,
     pres_performansi,
 )
@@ -26,6 +28,7 @@ _RENDERERS = {
     "pres": pres_performansi.render,
     "posa": posa_analizi.render,
     "arac": arac_lojistigi.render,
+    "lab": laboratuvar.render,
 }
 
 
@@ -34,6 +37,10 @@ def _bootstrap() -> None:
     if not db.is_ready() and SEED_XLSX.exists():
         with st.spinner("İlk veri yükleniyor…"):
             run_ingest(SEED_XLSX, mode="replace")
+    # Lab (Pres Kalite Kontrolleri) ships as a separate seed CSV — load it once
+    # if the workbook did not already bring a quality sheet.
+    if db.lab_count() == 0 and SEED_LAB_CSV.exists():
+        seed_lab_if_empty(SEED_LAB_CSV)
 
 
 def _sidebar() -> str:
@@ -50,6 +57,10 @@ def _sidebar() -> str:
             badges = {"posa": len(metrics.breaches())}
         except Exception:
             badges = {}
+        try:
+            badges["lab"] = len(metrics.lab_summary().out_of_spec)
+        except Exception:
+            pass
 
         current = st.session_state.get("page", "genel")
         for s in SECTIONS:
