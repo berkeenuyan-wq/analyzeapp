@@ -1,10 +1,43 @@
+# --- Python -----------------------------------------------------------------
 __pycache__/
 *.pyc
 .venv/
 venv/
+backend/.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- Node / frontend ------------------------------------------------------
+node_modules/
+frontend/dist/
+frontend/node_modules/
+electron/node_modules/
+.vite/
+
+# --- build output ---------------------------------------------------------
+# NB: build/pyinstaller/*.spec and build/electron-builder.yml ARE tracked;
+# only generated artefacts below are ignored.
+dist/
+out/
+release/
+build/pyinstaller/work/
+build/pyinstaller/dist/
+
+# --- app state (per-user, never committed) ------------------------------
+data/uretim.db
 data/*.db
 data/*.db-journal
-.streamlit/secrets.toml
+data/*.db-wal
+data/*.db-shm
+data/exports/
 exports/
+
+# --- legacy Streamlit ---------------------------------------------------
+.streamlit/secrets.toml
+
+# --- misc ---------------------------------------------------------------
+.DS_Store
 *.xlsx
 !data/seed/Production_Stats.xlsx
