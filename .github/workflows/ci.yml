@@ -75,6 +75,11 @@ jobs:
       - name: Install electron
         working-directory: electron
         run: npm ci
+      - name: Fix chrome-sandbox perms (Linux needs root:root 4755)
+        working-directory: electron
+        run: |
+          sudo chown root:root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
       - name: Typecheck + lint
         working-directory: electron
         run: |
