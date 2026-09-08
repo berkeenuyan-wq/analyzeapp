@@ -7,21 +7,52 @@ from pathlib import Path
 
 # --- paths ------------------------------------------------------------------- #
 # Two roots so the app works both from source and as a PyInstaller one-file exe:
-#   * BUNDLE_ROOT — read-only resources shipped inside the build (app.py, src,
-#     assets, the seed workbook). From source this is the repo root; when frozen
-#     it is PyInstaller's temp extraction dir (``sys._MEIPASS``).
-#   * STATE_DIR   — a writable folder for the SQLite DB and Excel exports. From
-#     source that is ``<repo>/data``; when frozen, ``%LOCALAPPDATA%\UretimPaneli``
-#     (falls back to ``~/.uretim-paneli``) so data survives between runs.
+#   * BUNDLE_ROOT — read-only resources shipped inside the build (the seed
+#     workbook, assets). From source this is the repo root; when frozen it is
+#     PyInstaller's temp extraction dir (``sys._MEIPASS``).
+#   * STATE_DIR   — a per-user *writable* folder for the SQLite DB and Excel
+#     exports. Never inside the bundle; data survives reinstall. Resolved by
+#     :func:`_default_state_dir`, overridable with ``$UP_STATE_DIR`` (Electron
+#     sidecar + the test suite set it).
 _FROZEN = getattr(sys, "frozen", False)
+
+
+def _default_state_dir() -> Path:
+    """Per-user writable dir for the DB and exports.
+
+    ``$UP_STATE_DIR`` wins if set. Otherwise: macOS →
+    ``~/Library/Application Support/UretimPaneli``; Windows →
+    ``%LOCALAPPDATA%\\UretimPaneli``; else an XDG-style
+    ``~/.local/share/UretimPaneli``.
+    """
+    override = os.environ.get("UP_STATE_DIR")
+    if override:
+        return Path(override).expanduser()
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "UretimPaneli"
+    if os.name == "nt":
+        base = (
+            os.environ.get("LOCALAPPDATA")
+            or os.environ.get("APPDATA")
+            or str(Path.home())
+        )
+        return Path(base) / "UretimPaneli"
+    xdg = os.environ.get("XDG_DATA_HOME")
+    return (Path(xdg) if xdg else Path.home() / ".local" / "share") / "UretimPaneli"
+
 
 if _FROZEN:
     BUNDLE_ROOT = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
-    _base = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())
-    STATE_DIR = Path(_base) / "UretimPaneli"
+    STATE_DIR = _default_state_dir()
 else:
-    BUNDLE_ROOT = Path(__file__).resolve().parent.parent
-    STATE_DIR = BUNDLE_ROOT / "data"
+    BUNDLE_ROOT = Path(__file__).resolve().parent.parent.parent
+    # From source, default to the repo's ``data/`` (git-ignored) for developer
+    # convenience — unless ``$UP_STATE_DIR`` explicitly redirects it.
+    STATE_DIR = (
+        _default_state_dir()
+        if os.environ.get("UP_STATE_DIR")
+        else BUNDLE_ROOT / "data"
+    )
 
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 

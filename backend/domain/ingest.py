@@ -24,8 +24,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import db
-from .config import SEED_XLSX
+from backend.core import db
+from backend.core.config import SEED_XLSX
 
 SHEET_BATCH = "Press Batch Kayıtları"
 SHEET_TRUCK = "Araç Takip"

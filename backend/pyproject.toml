@@ -1,0 +1,9 @@
+[project]
+name = "uretim-paneli-backend"
+version = "2.0.0"
+description = "Üretim Paneli v2 — FastAPI sidecar"
+requires-python = ">=3.12"
+
+# Tooling config (ruff / mypy / pytest) lives in the repo-root pyproject.toml so
+# every command runs from the repo root with ``backend`` as an importable
+# package. This file only carries project metadata.

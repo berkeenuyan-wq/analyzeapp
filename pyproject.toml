@@ -1,0 +1,59 @@
+# Repo-root tooling config for the v2 backend. Run all commands from here.
+# The legacy Streamlit tree (app.py, launcher.py, src/, "Üretim Paneli Design
+# System/") is excluded — it is carried for reference only in Phase 1.
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = [
+    "backend/.venv",
+    "src",
+    "app.py",
+    "launcher.py",
+    "Üretim Paneli Design System",
+]
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "TID"]
+
+[tool.ruff.lint.per-file-ignores]
+# Carried-over v1 modules: real errors (F) only until a phase rewrites them.
+"backend/domain/*" = ["E", "I", "UP", "B", "SIM", "TID"]
+"backend/core/db.py" = ["E", "I", "UP", "B", "SIM", "TID"]
+"backend/core/config.py" = ["E", "I", "UP", "B", "SIM", "TID"]
+# conftest sets an env var before importing backend, by design.
+"backend/tests/conftest.py" = ["E402"]
+"backend/tests/*" = ["TID252"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["backend"]
+mypy_path = "."
+explicit_package_bases = true
+exclude = '(^backend/\.venv/|^backend/domain/)'
+
+[[tool.mypy.overrides]]
+# Load-bearing v1 code moved verbatim — keeps its current typing level until a
+# phase deliberately touches it (docs/CODING_STANDARDS.md §1, extended to the
+# two modules that landed in core/ rather than domain/).
+module = ["backend.domain.*", "backend.core.db", "backend.core.config"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["uvicorn.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Tests exercise pandas/JSON dynamically; keep them checked but not strict.
+module = ["backend.tests.*"]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_any_generics = false
+warn_return_any = false
+disallow_any_explicit = false
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
