@@ -1,0 +1,240 @@
+/* Design System tokens — generated from ../../assets/tokens/*.css (v1).
+   Dark is the bare :root base; [data-theme="light"] re-scopes the aliases.
+   Regenerate with: scripts/build-tokens.sh */
+
+/* ===== fonts.css ===== */
+/* Geist + Geist Mono, served from Google Fonts.
+   SUBSTITUTION NOTE: no font binaries were supplied with the brief. Geist was
+   selected as the neutral grotesque with true tabular figures. If the plant has
+   a licensed corporate face, drop the .woff2 files into assets/fonts/ and replace
+   this @import with local @font-face rules. */
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap");
+
+/* ===== colors.css ===== */
+:root{
+  /* --- base neutrals (dark is the primary theme) --- */
+  --gray-0:#08080a;--gray-1:#0b0b0e;--gray-2:#0e0e12;--gray-3:#121216;--gray-4:#17171c;
+  --gray-5:#1d1d23;--gray-6:#26262e;--gray-7:#33333d;--gray-8:#4b4b57;--gray-9:#6f6f7b;
+  --gray-10:#8f8f9b;--gray-11:#a8a8b3;--gray-12:#d6d6dc;--gray-13:#f4f4f6;
+
+  /* --- accent: one vivid magenta, semantically neutral so green/red stay free --- */
+  --accent-base:#e0409e;--accent-bright:#ea5cae;--accent-deep:#c22f85;
+  --accent-tint-08:rgba(224,64,158,.08);--accent-tint-14:rgba(224,64,158,.14);
+  --accent-tint-24:rgba(224,64,158,.24);--accent-tint-40:rgba(224,64,158,.40);
+
+  /* --- signal colours. These carry meaning ONLY. Never decorative. --- */
+  --signal-good:#3ecf8e;--signal-good-tint:rgba(62,207,142,.14);--signal-good-border:rgba(62,207,142,.30);
+  --signal-bad:#f0525b;--signal-bad-tint:rgba(240,82,91,.14);--signal-bad-border:rgba(240,82,91,.32);
+  --signal-caution:#e8b53f;--signal-caution-tint:rgba(232,181,63,.14);--signal-caution-border:rgba(232,181,63,.30);
+  --signal-neutral:#8f8f9b;--signal-neutral-tint:rgba(143,143,155,.12);--signal-neutral-border:rgba(143,143,155,.24);
+
+  /* --- chart series. Ordered. Series 1 is always the primary measure. --- */
+  --series-1:#e0409e;--series-2:#3ecf8e;--series-3:#5b8def;--series-4:#e8b53f;
+  --series-5:#a06ce8;--series-6:#4bc2c7;
+  --chart-grid:rgba(255,255,255,.055);--chart-axis:#6f6f7b;--chart-crosshair:rgba(255,255,255,.22);
+
+  /* --- semantic aliases: use THESE in components --- */
+  --bg-app:var(--gray-1);
+  --bg-nav:var(--gray-2);
+  --surface-card:var(--gray-3);
+  --surface-inset:var(--gray-4);
+  --surface-raised:var(--gray-5);
+  --surface-hover:rgba(255,255,255,.035);
+  --surface-active:rgba(255,255,255,.06);
+  --surface-field:var(--gray-2);
+  --surface-scrim:rgba(4,4,6,.72);
+
+  --border-subtle:#212127;
+  --border-card:#1e1e25;
+  --border-strong:#2f2f39;
+  --border-field:#2a2a33;
+  --border-focus:var(--accent-base);
+  --ring-focus:0 0 0 3px var(--accent-tint-40);
+
+  --text-primary:var(--gray-13);
+  --text-body:var(--gray-12);
+  --text-muted:var(--gray-11);
+  --text-subtle:var(--gray-9);
+  --text-disabled:var(--gray-8);
+  --text-on-accent:#ffffff;
+  --text-link:var(--accent-bright);
+  --text-link-hover:#f27cc0;
+
+  --action-primary-bg:var(--accent-base);
+  --action-primary-bg-hover:var(--accent-bright);
+  --action-primary-bg-press:var(--accent-deep);
+  --action-secondary-bg:var(--gray-4);
+  --action-secondary-bg-hover:var(--gray-5);
+  --action-ghost-bg-hover:var(--surface-hover);
+
+  --nav-item-active-bg:var(--gray-5);
+  --nav-item-active-fg:var(--gray-13);
+  --nav-item-fg:var(--gray-11);
+  --nav-indicator:var(--accent-base);
+}
+
+/* Full light parity. Same alias names, re-pointed. */
+[data-theme="light"]{
+  --bg-app:#f6f6f8;
+  --bg-nav:#ffffff;
+  --surface-card:#ffffff;
+  --surface-inset:#f7f7f9;
+  --surface-raised:#ffffff;
+  --surface-hover:rgba(10,10,14,.035);
+  --surface-active:rgba(10,10,14,.06);
+  --surface-field:#ffffff;
+  --surface-scrim:rgba(20,20,26,.38);
+
+  --border-subtle:#e7e7ec;
+  --border-card:#e4e4ea;
+  --border-strong:#d3d3dc;
+  --border-field:#d8d8e0;
+
+  --text-primary:#141419;
+  --text-body:#2c2c35;
+  --text-muted:#5c5c69;
+  --text-subtle:#84848f;
+  --text-disabled:#b0b0ba;
+  --text-link:var(--accent-deep);
+  --text-link-hover:#a52870;
+
+  --accent-base:#c8318a;--accent-bright:#d84a9e;--accent-deep:#a52870;
+
+  --signal-good:#1d9c67;--signal-good-tint:rgba(29,156,103,.10);--signal-good-border:rgba(29,156,103,.26);
+  --signal-bad:#d23a44;--signal-bad-tint:rgba(210,58,68,.09);--signal-bad-border:rgba(210,58,68,.26);
+  --signal-caution:#b8860c;--signal-caution-tint:rgba(184,134,12,.11);--signal-caution-border:rgba(184,134,12,.26);
+  --signal-neutral:#6f6f7b;--signal-neutral-tint:rgba(111,111,123,.10);--signal-neutral-border:rgba(111,111,123,.22);
+
+  --series-1:#c8318a;--series-2:#1d9c67;--series-3:#3a6fd8;--series-4:#b8860c;
+  --series-5:#7d47c4;--series-6:#1e9ba1;
+  --chart-grid:rgba(20,20,26,.07);--chart-axis:#84848f;--chart-crosshair:rgba(20,20,26,.22);
+
+  --action-secondary-bg:#f2f2f5;
+  --action-secondary-bg-hover:#e9e9ee;
+
+  --nav-item-active-bg:#f2f2f5;
+  --nav-item-active-fg:#141419;
+  --nav-item-fg:#5c5c69;
+}
+
+/* ===== typography.css ===== */
+:root{
+  --font-sans:"Geist","Segoe UI",system-ui,-apple-system,sans-serif;
+  --font-mono:"Geist Mono","SFMono-Regular",ui-monospace,monospace;
+  --font-numeric:var(--font-sans);
+
+  --text-2xs:11px;--text-xs:12px;--text-sm:13px;--text-base:14px;--text-md:15px;
+  --text-lg:17px;--text-xl:20px;--text-2xl:24px;--text-3xl:30px;--text-4xl:38px;
+  --text-5xl:48px;--text-6xl:64px;
+
+  --weight-regular:400;--weight-medium:500;--weight-semibold:600;--weight-bold:700;
+
+  --leading-flat:1;--leading-tight:1.2;--leading-snug:1.35;--leading-normal:1.5;--leading-relaxed:1.65;
+
+  --tracking-metric:-.025em;--tracking-tight:-.012em;--tracking-normal:0;
+  --tracking-wide:.02em;--tracking-label:.06em;
+
+  /* role aliases */
+  --type-hero-metric:var(--weight-semibold) var(--text-6xl)/var(--leading-flat) var(--font-sans);
+  --type-metric:var(--weight-semibold) var(--text-3xl)/var(--leading-flat) var(--font-sans);
+  --type-page-title:var(--weight-semibold) var(--text-2xl)/var(--leading-tight) var(--font-sans);
+  --type-card-title:var(--weight-semibold) var(--text-md)/var(--leading-snug) var(--font-sans);
+  --type-body:var(--weight-regular) var(--text-base)/var(--leading-normal) var(--font-sans);
+  --type-caption:var(--weight-regular) var(--text-sm)/var(--leading-snug) var(--font-sans);
+  --type-label:var(--weight-medium) var(--text-xs)/var(--leading-snug) var(--font-sans);
+  --type-overline:var(--weight-semibold) var(--text-2xs)/var(--leading-snug) var(--font-sans);
+  --type-table-num:var(--weight-medium) var(--text-sm)/var(--leading-snug) var(--font-mono);
+
+  --numeric-tabular:"tnum" 1,"cv01" 1; /* @kind other */
+}
+
+/* ===== spacing.css ===== */
+:root{
+  --space-0:0;--space-1:2px;--space-2:4px;--space-3:6px;--space-4:8px;--space-5:12px;
+  --space-6:16px;--space-7:20px;--space-8:24px;--space-9:32px;--space-10:40px;
+  --space-11:48px;--space-12:64px;--space-13:80px;
+
+  /* layout constants */
+  --card-pad:20px;
+  --card-pad-tight:14px;
+  --card-gap:16px;
+  --page-pad-x:28px;
+  --page-pad-y:24px;
+  --section-gap:24px;
+  --sidebar-w:232px;
+  --sidebar-w-collapsed:64px;
+  --topbar-h:64px;
+  --control-h-sm:30px;
+  --control-h:36px;
+  --control-h-lg:42px;
+  --hit-min:44px;
+  --content-max:1560px;
+}
+
+/* ===== radius.css ===== */
+:root{
+  --radius-xs:5px;--radius-sm:8px;--radius-md:10px;--radius-lg:14px;
+  --radius-xl:18px;--radius-2xl:24px;--radius-pill:999px;
+  --radius-card:14px;
+  --radius-card-inset:10px;
+  --radius-control:8px;
+  --radius-chip:999px;
+  --radius-panel:18px;
+}
+
+/* ===== elevation.css ===== */
+:root{
+  /* Depth is quiet: a hairline border does the separating, the shadow only
+     lifts the card off the near-black page. */
+  --shadow-none:none;
+  --shadow-card:0 1px 1px rgba(0,0,0,.30),0 10px 28px -18px rgba(0,0,0,.70);
+  --shadow-raised:0 2px 4px rgba(0,0,0,.34),0 18px 44px -22px rgba(0,0,0,.78);
+  --shadow-pop:0 8px 12px -6px rgba(0,0,0,.44),0 26px 60px -24px rgba(0,0,0,.82);
+  --shadow-inset-field:inset 0 1px 0 rgba(255,255,255,.03);
+  --glow-accent:0 0 0 1px var(--accent-tint-24),0 8px 24px -10px var(--accent-tint-40);
+  --glow-good:0 0 0 1px var(--signal-good-border);
+  --glow-bad:0 0 0 1px var(--signal-bad-border);
+  --blur-scrim:blur(8px); /* @kind other */
+  --blur-panel:blur(16px); /* @kind other */
+}
+[data-theme="light"]{
+  --shadow-card:0 1px 2px rgba(20,20,26,.05),0 6px 18px -12px rgba(20,20,26,.14);
+  --shadow-raised:0 2px 4px rgba(20,20,26,.07),0 14px 34px -16px rgba(20,20,26,.18);
+  --shadow-pop:0 8px 14px -8px rgba(20,20,26,.12),0 24px 54px -22px rgba(20,20,26,.24);
+  --shadow-inset-field:inset 0 1px 0 rgba(20,20,26,.02);
+}
+
+/* ===== motion.css ===== */
+:root{
+  --dur-instant:80ms; /* @kind other */
+  --dur-fast:140ms; /* @kind other */
+  --dur-base:200ms; /* @kind other */
+  --dur-slow:320ms; /* @kind other */
+  --dur-chart:600ms; /* @kind other */
+  --ease-standard:cubic-bezier(.2,0,.2,1); /* @kind other */
+  --ease-out:cubic-bezier(.16,1,.3,1); /* @kind other */
+  --ease-in:cubic-bezier(.4,0,1,1); /* @kind other */
+  --transition-control:background-color var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard); /* @kind other */
+}
+@media (prefers-reduced-motion:reduce){:root{
+  --dur-instant:0ms; /* @kind other */
+  --dur-fast:0ms; /* @kind other */
+  --dur-base:0ms; /* @kind other */
+  --dur-slow:0ms; /* @kind other */
+  --dur-chart:0ms; /* @kind other */
+}}
+
+/* ===== base.css ===== */
+*,*::before,*::after{box-sizing:border-box}
+html{color-scheme:dark}
+[data-theme="light"]{color-scheme:light}
+body{margin:0;background:var(--bg-app);color:var(--text-body);font:var(--type-body);-webkit-font-smoothing:antialiased;font-feature-settings:var(--numeric-tabular)}
+a{color:var(--text-link);text-decoration:none}
+a:hover{color:var(--text-link-hover);text-decoration:underline;text-underline-offset:2px}
+::selection{background:var(--accent-tint-40);color:var(--text-primary)}
+:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:var(--gray-6);border-radius:var(--radius-pill);border:3px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:var(--gray-7);background-clip:content-box}
+

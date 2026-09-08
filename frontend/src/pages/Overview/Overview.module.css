@@ -1,0 +1,42 @@
+.page {
+  padding: var(--page-pad-y) var(--page-pad-x);
+}
+
+.title {
+  margin: 0 0 var(--section-gap);
+  font: var(--type-page-title);
+  color: var(--text-primary);
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--card-gap);
+}
+
+.inlineError {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--card-pad);
+  font: var(--type-caption);
+  color: var(--text-body);
+  background: var(--surface-card);
+  border: 1px solid var(--signal-bad-border);
+  border-radius: var(--radius-card);
+}
+
+.retry {
+  height: var(--control-h-sm);
+  padding: 0 var(--space-5);
+  font: var(--type-label);
+  color: var(--text-on-accent);
+  background: var(--action-primary-bg);
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--action-primary-bg-hover);
+}

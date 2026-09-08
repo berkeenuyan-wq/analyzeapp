@@ -1,0 +1,19 @@
+/* App-level layout resets on top of the design-system base.css (in tokens.css). */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+#root {
+  isolation: isolate;
+}
+
+img {
+  max-width: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}

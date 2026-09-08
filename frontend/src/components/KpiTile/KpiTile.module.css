@@ -1,0 +1,65 @@
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 220px;
+  padding: var(--card-pad);
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.label {
+  margin: 0;
+  font: var(--type-overline);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.value {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  font: var(--type-metric);
+  letter-spacing: var(--tracking-metric);
+  color: var(--text-primary);
+}
+
+.unit {
+  font: var(--type-caption);
+  color: var(--text-muted);
+}
+
+.empty {
+  font: var(--type-caption);
+  color: var(--text-disabled);
+}
+
+.toneRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font: var(--type-label);
+  color: var(--text-muted);
+}
+
+.toneDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--signal-neutral);
+}
+
+.tile[data-tone="good"] .toneDot {
+  background: var(--signal-good);
+}
+.tile[data-tone="caution"] .toneDot {
+  background: var(--signal-caution);
+}
+.tile[data-tone="bad"] .toneDot {
+  background: var(--signal-bad);
+}
