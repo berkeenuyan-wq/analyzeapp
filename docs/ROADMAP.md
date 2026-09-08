@@ -1,10 +1,11 @@
 # Roadmap — Üretim Paneli v2
 
 **Status:** Phase 1 in progress — walking skeleton wired end to end
-(backend + frontend + Electron all verified unpackaged). One blocker: the
-packaged `.dmg` builds but the `.app` SIGTRAPs in V8 on launch in the current
-(headless) session; needs a real GUI login or Phase-7 Developer ID signing to
-confirm. Phase 2 not started.
+(backend + frontend + Electron all verified unpackaged); PR #1 open with
+**CI green** (backend + frontend + electron smoke). One blocker left: the
+packaged `.dmg` builds but the `.app` SIGTRAPs in V8 on launch in the
+build session; needs a real GUI-login retest or Phase-7 Developer ID
+signing to confirm. Phase 2 not started.
 **Last updated:** 2026-09-08
 
 Work phases top to bottom. Finish, test, and get user sign-off on a phase before
@@ -59,12 +60,12 @@ and renders one real KPI from `metrics.py`. A packaged build runs on this Mac.
       V8 SIGTRAP under this headless session; retest with a GUI login /
       Phase-7 signing.
 - [x] `.github/workflows/ci.yml` — ruff, mypy, pytest, tsc, eslint, vitest,
-      electron smoke (xvfb); `release.yml` stub
+      electron smoke (xvfb); `release.yml` stub. **Green on PR #1.**
 
 **Exit:** packaged Mac app opens, shows the real headline KPI, quits cleanly with
 no orphaned backend process. CI green.
-*Outstanding:* confirm the packaged `.app` launches (see above); run CI once on
-the remote to confirm green.
+*Outstanding:* confirm the packaged `.app` launches (see above) — everything
+else is done and CI is green.
 
 ---
 
