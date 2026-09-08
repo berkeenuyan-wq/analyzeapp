@@ -90,4 +90,5 @@ jobs:
         run: npm run build
       - name: Sidecar lifecycle / no-orphan guard
         working-directory: electron
-        run: xvfb-run --auto-servernum ./node_modules/.bin/electron dist/smoke.js
+        timeout-minutes: 5
+        run: xvfb-run --auto-servernum timeout 180 ./node_modules/.bin/electron dist/smoke.js

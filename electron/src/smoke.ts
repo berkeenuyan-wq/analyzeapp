@@ -14,6 +14,20 @@ import { app } from "electron";
 
 import { Sidecar } from "./sidecar";
 
+// Headless CI: no GPU, no window compositor.
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch("disable-gpu");
+app.commandLine.appendSwitch("disable-software-rasterizer");
+app.commandLine.appendSwitch("no-sandbox");
+
+// Hard wall-clock guard so a hang fails the job in seconds, not hours.
+const WATCHDOG_MS = 90_000;
+const watchdog = setTimeout(() => {
+  process.stderr.write("smoke: FAIL watchdog timeout\n");
+  app.exit(3);
+}, WATCHDOG_MS);
+watchdog.unref();
+
 function delay(ms: number): Promise<void> {
   return new Promise((res) => setTimeout(res, ms));
 }
@@ -78,9 +92,11 @@ async function main(): Promise<void> {
 
 main()
   .then(() => {
+    clearTimeout(watchdog);
     app.exit(0);
   })
   .catch((err: unknown) => {
+    clearTimeout(watchdog);
     process.stderr.write(`smoke: FAIL ${String(err)}\n`);
     app.exit(1);
   });
