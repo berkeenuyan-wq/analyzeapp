@@ -1,0 +1,51 @@
+# electron-builder config. Invoke from electron/ (projectDir):
+#   cd electron && npx electron-builder --mac --config ../build/electron-builder.yml
+# or:  make -C build dmg
+#
+# Prereqs, in order: frontend/dist (npm run build), the PyInstaller backend
+# binary (build/pyinstaller/dist/uretim-backend), electron/dist (tsc).
+appId: com.uretimpaneli.app
+productName: Üretim Paneli
+copyright: © 2026 Üretim Paneli
+
+directories:
+  output: ../build/dist
+  buildResources: ../build/resources
+
+# The Electron app has no runtime node_modules — everything is compiled into
+# dist/. Ship just that plus the manifest.
+files:
+  - dist/**/*
+  - package.json
+  - "!**/*.map"
+
+asar: true
+
+afterPack: ./../build/afterpack-adhoc.cjs
+
+# Use the Electron binary that `npm install` already placed and verified in
+# electron/node_modules. electron-builder's own re-download SIGTRAPs in V8 on
+# launch on this machine (a newer npm defers package install scripts).
+electronDist: node_modules/electron/dist
+
+extraResources:
+  - from: ../frontend/dist
+    to: renderer
+  - from: ../build/pyinstaller/dist/uretim-backend
+    to: backend/uretim-backend
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  category: public.app-category.productivity
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  # Phase 1: no Apple Developer ID. electron-builder leaves Electron's own
+  # linker ad-hoc signature intact. Real signing + notarisation is Phase 7.
+  identity: null
+
+dmg:
+  writeUpdateInfo: false
+
+# release.yml (Phase 7) will add the win target + Developer ID signing.

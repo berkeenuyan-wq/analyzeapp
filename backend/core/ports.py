@@ -6,6 +6,7 @@ asks the OS for a free port on ``127.0.0.1``, then prints a single
 """
 from __future__ import annotations
 
+import os
 import socket
 import sys
 
@@ -27,9 +28,19 @@ def pick_free_port(host: str = LOOPBACK_HOST) -> int:
 
 
 def announce_port(port: int) -> None:
-    """Emit the handshake line the Electron main process waits for."""
-    sys.stdout.write(f"{HANDSHAKE_PREFIX}{port}\n")
-    sys.stdout.flush()
+    """Emit the handshake line the Electron main process waits for.
+
+    Written straight to fd 1 as well as ``sys.stdout``: in a PyInstaller
+    one-file build ``sys.stdout`` buffering can swallow the line, and Electron
+    parses it from the child's raw stdout.
+    """
+    line = f"{HANDSHAKE_PREFIX}{port}\n"
+    try:
+        os.write(1, line.encode("ascii"))
+    except OSError:
+        # Fall back to the Python stream if fd 1 is unavailable.
+        sys.stdout.write(line)
+        sys.stdout.flush()
 
 
 def parse_port_line(line: str) -> int | None:

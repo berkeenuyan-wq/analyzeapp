@@ -55,7 +55,7 @@ export function backendLaunch(): BackendLaunch {
 export const RENDERER_DEV_URL = "http://localhost:5173";
 
 export function rendererProdEntry(): string {
-  // electron-builder packs the app into app.asar; the built frontend is copied
-  // to `renderer/` next to the compiled main process.
-  return join(app.getAppPath(), "renderer", "index.html");
+  // electron-builder copies frontend/dist to Contents/Resources/renderer
+  // (see build/electron-builder.yml `extraResources`).
+  return join(process.resourcesPath, "renderer", "index.html");
 }

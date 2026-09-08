@@ -54,8 +54,14 @@ def main() -> None:
     port_env = os.environ.get("UP_BACKEND_PORT")
     port = int(port_env) if port_env else pick_free_port()
     announce_port(port)
+
+    # Pass the app object, not an import string: the string form needs a
+    # re-import that the frozen (PyInstaller) build can't resolve, and we never
+    # use --reload.
+    from backend.main import app
+
     uvicorn.run(
-        "backend.main:app",
+        app,
         host=LOOPBACK_HOST,
         port=port,
         log_level=log_level.lower(),
