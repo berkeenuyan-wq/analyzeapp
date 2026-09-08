@@ -17,8 +17,9 @@ from backend.core.ports import LOOPBACK_HOST, announce_port, pick_free_port
 
 
 def main() -> None:
+    log_level = os.environ.get("UP_LOG_LEVEL", "INFO")
     logging.basicConfig(
-        level=os.environ.get("UP_LOG_LEVEL", "INFO"),
+        level=log_level.upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     port_env = os.environ.get("UP_BACKEND_PORT")
@@ -28,7 +29,7 @@ def main() -> None:
         "backend.main:app",
         host=LOOPBACK_HOST,
         port=port,
-        log_level=os.environ.get("UP_LOG_LEVEL", "info").lower(),
+        log_level=log_level.lower(),
         access_log=False,
     )
 
