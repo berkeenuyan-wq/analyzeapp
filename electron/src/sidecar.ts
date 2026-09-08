@@ -29,6 +29,8 @@ export class Sidecar {
   private starting: Promise<number> | null = null;
   private logStream: WriteStream | null = null;
   private readonly fatalListeners = new Set<FatalListener>();
+  /** Every PID this instance has spawned, for the no-orphan guard. */
+  private readonly spawnedPids = new Set<number>();
 
   onFatal(listener: FatalListener): void {
     this.fatalListeners.add(listener);
@@ -41,6 +43,20 @@ export class Sidecar {
   /** PID of the live sidecar process, for tests/diagnostics only. */
   get childPid(): number | undefined {
     return this.child?.pid;
+  }
+
+  /** PIDs this instance spawned that are still alive (tests/diagnostics). */
+  livingPids(): number[] {
+    const alive: number[] = [];
+    for (const pid of this.spawnedPids) {
+      try {
+        process.kill(pid, 0); // throws ESRCH once the process is reaped
+        alive.push(pid);
+      } catch {
+        this.spawnedPids.delete(pid);
+      }
+    }
+    return alive;
   }
 
   /** Spawn (if not already up) and resolve once `/health` answers. */
@@ -84,6 +100,7 @@ export class Sidecar {
       stdio: ["ignore", "pipe", "pipe"],
     });
     this.child = child;
+    if (child.pid) this.spawnedPids.add(child.pid);
 
     let stdoutBuf = "";
     const portFromStdout = new Promise<number>((resolvePort, rejectPort) => {

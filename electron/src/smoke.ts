@@ -8,8 +8,6 @@
  * Exit 0 = sidecar started, answered /health, stopped, and left no child
  * process. Non-zero = a step failed or a backend process survived.
  */
-import { execSync, spawnSync } from "node:child_process";
-
 import { app } from "electron";
 
 import { Sidecar } from "./sidecar";
@@ -54,7 +52,7 @@ async function main(): Promise<void> {
   // Crash → capped restart (docs/ROADMAP.md Phase 1: "restart on crash").
   const crashedPid = sidecar.childPid;
   if (crashedPid) {
-    spawnSync("kill", ["-9", String(crashedPid)]);
+    process.kill(crashedPid, "SIGKILL");
     process.stdout.write(`smoke: killed sidecar pid ${String(crashedPid)}\n`);
     let recovered = false;
     for (let i = 0; i < 30; i += 1) {
@@ -75,17 +73,16 @@ async function main(): Promise<void> {
 
   await sidecar.stop();
 
-  // Nothing matching the sidecar entry point should remain.
-  let survivors = "";
-  try {
-    survivors = execSync("pgrep -fl 'backend.run|uretim-backend' || true", {
-      encoding: "utf8",
-    }).trim();
-  } catch {
-    /* pgrep not available — skip the check */
+  // No PID this Sidecar spawned may still be alive. Poll for a few seconds —
+  // a just-SIGTERMed process lingers a moment before the kernel reaps it, which
+  // is not an orphan. Uses process.kill(pid, 0), so no shelling out.
+  let living = sidecar.livingPids();
+  for (let i = 0; i < 20 && living.length > 0; i += 1) {
+    await delay(250);
+    living = sidecar.livingPids();
   }
-  if (survivors) {
-    throw new Error(`orphaned backend process(es):\n${survivors}`);
+  if (living.length > 0) {
+    throw new Error(`orphaned backend process(es): ${living.join(", ")}`);
   }
   process.stdout.write("smoke: no orphaned backend process — OK\n");
 }
