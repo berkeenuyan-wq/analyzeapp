@@ -1,6 +1,10 @@
 # Roadmap — Üretim Paneli v2
 
-**Status:** Phase 0 complete (planning + docs). Phase 1 not started.
+**Status:** Phase 1 in progress — walking skeleton wired end to end
+(backend + frontend + Electron all verified unpackaged). One blocker: the
+packaged `.dmg` builds but the `.app` SIGTRAPs in V8 on launch in the current
+(headless) session; needs a real GUI login or Phase-7 Developer ID signing to
+confirm. Phase 2 not started.
 **Last updated:** 2026-09-08
 
 Work phases top to bottom. Finish, test, and get user sign-off on a phase before
@@ -25,33 +29,42 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked (note why
 Goal: an Electron window on macOS **and** Windows that boots a FastAPI sidecar
 and renders one real KPI from `metrics.py`. A packaged build runs on this Mac.
 
-- [ ] `git init` (repo is currently not under version control); first commit of
-      the legacy tree + docs before restructuring
-- [ ] Create `backend/`, move `metrics.py` `ingest.py` `excel_io.py` `fmt.py`
-      → `backend/domain/`, `config.py` `db.py` → `backend/core/`; fix imports
-- [ ] Add the macOS branch to `config.py` `STATE_DIR`
-- [ ] `backend/core/ports.py` — pick a free loopback port, hand off to Electron
-- [ ] `backend/main.py` — FastAPI app, `/health`, CORS locked to renderer origin
-- [ ] `backend/api/metrics.py` — `GET /api/metrics/headline` returns
-      `metrics.headline()` as JSON
-- [ ] First-run bootstrap: seed `data/seed/*` into SQLite if empty (port the
-      logic from the old `app.py` `_bootstrap`)
-- [ ] `backend/core/migrations/` runner + `0001_v2_tables.py` creating the
-      Section 4.2 tables; `schema_migrations` bookkeeping
-- [ ] `backend/tests/test_metrics_baseline.py` — freeze the reconciled values
-      (see `docs/RULES.md` § Metric baseline)
-- [ ] `frontend/` Vite + React + TS; left icon rail + 6 empty routed pages
-- [ ] `frontend/src/lib/api.ts` typed client; Overview shows the headline KPI
-- [ ] Design System tokens wired; dark + light toggle switches the palette
-- [ ] `electron/` main + preload + `sidecar.ts` (spawn, `/health` poll, restart
-      on crash, kill on quit); `contextIsolation` on, `nodeIntegration` off
-- [ ] Dev scripts: one command each for backend, frontend, electron; README-dev
-- [ ] `build/pyinstaller/uretim-backend.mac.spec` + `electron-builder.yml`;
-      produce a `.dmg` that launches on this Mac
-- [ ] `.github/workflows/ci.yml` — lint, typecheck, pytest, vitest on push
+- [x] `git`: repo already had history (fresh clone); first commit adds
+      `docs/` + widened `.gitignore`. Legacy tree kept, not deleted.
+- [x] Create `backend/`, move `metrics.py` `ingest.py` `excel_io.py` `fmt.py`
+      → `backend/domain/`, `config.py` `db.py` → `backend/core/`; imports fixed
+- [x] Add the macOS branch to `config.py` `STATE_DIR` (+ `$UP_STATE_DIR`
+      override for tests/Electron)
+- [x] `backend/core/ports.py` — ephemeral loopback port + `UP_BACKEND_PORT=`
+      handshake on fd 1
+- [x] `backend/main.py` — FastAPI app, `/health`, CORS locked to renderer origin
+- [x] `backend/api/metrics.py` — `GET /api/metrics/headline`, Pydantic model
+- [x] First-run bootstrap ported from `app.py::_bootstrap` (lifespan)
+- [x] `backend/core/migrations/` runner + `0001_v2_tables.py`;
+      `schema_migrations`; refuses a DB newer than the code
+- [x] `backend/tests/` — `test_metrics_baseline.py` freezes the reconciled
+      values (91.05 / 112.71, `tone_*`, lab window rule 33/34,
+      `LAB_SPECS_CONFIRMED False`); `test_health`, `test_migrations`. 35 pass.
+- [x] `frontend/` Vite + React + TS; icon rail + 6 hash routes (5 placeholder)
+- [x] `frontend/src/lib/api.ts` typed client; Overview shows the headline KPI
+      (verified in-browser: 91,05)
+- [x] Design System tokens wired (`scripts/build-tokens.sh`); dark ⇄ light
+      toggle in the rail (both verified)
+- [x] `electron/` main + preload + `sidecar.ts` (spawn, `/health` poll, restart
+      ≤3× on crash, SIGTERM→SIGKILL on quit, parent-death watchdog);
+      sandboxed renderer. `smoke.ts` guards it. Verified unpackaged.
+- [x] Dev scripts: `Makefile` + `docs/DEV.md`
+- [x] `build/pyinstaller/uretim-backend.mac.spec` + `electron-builder.yml`;
+      `.dmg` builds. **Launch of the packaged .app not yet confirmed** —
+      V8 SIGTRAP under this headless session; retest with a GUI login /
+      Phase-7 signing.
+- [x] `.github/workflows/ci.yml` — ruff, mypy, pytest, tsc, eslint, vitest,
+      electron smoke (xvfb); `release.yml` stub
 
 **Exit:** packaged Mac app opens, shows the real headline KPI, quits cleanly with
 no orphaned backend process. CI green.
+*Outstanding:* confirm the packaged `.app` launches (see above); run CI once on
+the remote to confirm green.
 
 ---
 

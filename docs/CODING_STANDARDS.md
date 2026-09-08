@@ -21,8 +21,14 @@ the surrounding file.
 - **Version:** 3.11+. `from __future__ import annotations` at the top of every
   module (matches the existing codebase).
 - **Style:** Black (line length 88) + Ruff. Ruff rules: `E,F,I,UP,B,SIM,TID`.
-  `mypy --strict` on `backend/` except `domain/` legacy files, which stay at the
-  current typing level until a phase touches them.
+  `mypy --strict` on `backend/` except the carried-over v1 modules —
+  `backend/domain/*` plus `backend/core/db.py` and `backend/core/config.py`
+  (moved verbatim) — which stay at the current typing level until a phase
+  touches them. Config for both lives in the repo-root `pyproject.toml`; run
+  `ruff`/`mypy`/`pytest` from the repo root.
+- **Runtime:** CPython **3.12** for the backend venv (`brew install
+  python@3.12`). 3.13/3.14 have no working pandas/numpy build yet. `numpy` is
+  pinned just under pandas' ABI bound in `backend/requirements.txt`.
 - **Imports:** stdlib / third-party / local, blank-line separated, `isort`
   ordering via Ruff `I`.
 - **FastAPI:**
