@@ -1,0 +1,27 @@
+{
+  "name": "uretim-paneli-electron",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Üretim Paneli v2 — Electron shell",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "start": "npm run build && electron .",
+    "dist:mac": "npm run build && electron-builder --mac --config ../build/electron-builder.yml",
+    "smoke": "npm run build && electron dist/smoke.js"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@typescript-eslint/eslint-plugin": "8.18.1",
+    "@typescript-eslint/parser": "8.18.1",
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "eslint": "8.57.1",
+    "typescript": "5.5.4"
+  },
+  "allowScripts": {
+    "electron@33.2.1": true
+  }
+}
