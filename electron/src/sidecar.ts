@@ -159,10 +159,16 @@ export class Sidecar {
     await delay(backoff);
     if (this.shuttingDown) return;
     try {
-      await this.spawnAndWait();
+      this.starting = this.spawnAndWait().finally(() => {
+        this.starting = null;
+      });
+      await this.starting;
+      // stop() may have been called while this restart was in flight; if so,
+      // the child it wanted to kill didn't exist yet — kill this one now.
+      if (this.shuttingDown) await this.stop();
     } catch (err) {
       this.write(`restart failed: ${String(err)}`);
-      void this.handleUnexpectedExit();
+      if (!this.shuttingDown) void this.handleUnexpectedExit();
     }
   }
 
@@ -181,8 +187,19 @@ export class Sidecar {
   /** SIGTERM, then SIGKILL after a grace period. Safe to call more than once. */
   async stop(): Promise<void> {
     this.shuttingDown = true;
+    // A restart may be mid-flight — let it finish spawning so we can kill the
+    // child it produces rather than leaking it.
+    if (this.starting) {
+      try {
+        await this.starting;
+      } catch {
+        /* start failed — nothing to kill */
+      }
+    }
     const child = this.child;
     if (!child || child.exitCode !== null || child.signalCode !== null) {
+      this.child = null;
+      this.port = null;
       this.logStream?.end();
       return;
     }
