@@ -1,0 +1,36 @@
+name: Release
+
+# Stub — wired up in Phase 7 (signing + notarisation need certs from the user).
+# For now it only builds the unsigned macOS .dmg on a tag, as an artefact.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install
+        run: |
+          python -m venv backend/.venv
+          backend/.venv/bin/pip install --upgrade pip
+          backend/.venv/bin/pip install -r backend/requirements.lock.txt -r backend/requirements-dev.txt
+          cd frontend && npm ci && cd ..
+          cd electron && npm ci && cd ..
+      - name: Build .dmg
+        run: make -C build dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uretim-paneli-macos-dmg
+          path: build/dist/*.dmg
+
+  # windows: added in Phase 7 (nsis + Authenticode)
